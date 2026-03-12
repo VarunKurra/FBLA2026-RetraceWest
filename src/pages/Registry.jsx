@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MapPin, Navigation, BookmarkPlus, Crosshair, GraduationCap, Filter, Clock, ChevronRight, Sparkles, BrainCircuit, MessageSquare, Send, X } from 'lucide-react';
+import { Search, MapPin, Navigation, BookmarkPlus, Crosshair, GraduationCap, Filter, Clock, ChevronRight, Sparkles, BrainCircuit, MessageSquare, Send, X, Camera, ArrowRight, PackageSearch } from 'lucide-react';
 
 
 import { useApp } from '../context/AppContext';

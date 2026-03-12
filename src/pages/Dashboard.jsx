@@ -126,6 +126,33 @@ const Dashboard = () => {
                                             ))}
                                         </div>
 
+                                        <div className="intel-sec-v5 glass">
+                                            <div className="sec-header-v5">
+                                                <div className="h-left">
+                                                    <Sparkles size={18} color="var(--color-primary)" />
+                                                    <h2>System Intelligence</h2>
+                                                </div>
+                                                <span className="live-status"><div className="pulse"></div> Live Monitor</span>
+                                            </div>
+                                            <div className="intel-grid">
+                                                <div className="intel-card">
+                                                    <strong>Search Precision</strong>
+                                                    <div className="bar-bg"><div className="bar-fill" style={{ width: '92%' }}></div></div>
+                                                    <span>92% Neural Efficiency</span>
+                                                </div>
+                                                <div className="intel-card">
+                                                    <strong>Recovery Velocity</strong>
+                                                    <div className="bar-bg"><div className="bar-fill" style={{ width: '78%' }}></div></div>
+                                                    <span>Avg. 2.4 days to resolution</span>
+                                                </div>
+                                                <div className="intel-card">
+                                                    <strong>Network Trust</strong>
+                                                    <div className="bar-bg"><div className="bar-fill" style={{ width: '99%' }}></div></div>
+                                                    <span>Verified Institutional Nodes</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div className="content-sec-v5 glass">
                                             <div className="sec-header-v5">
                                                 <h2>{state.user.role === 'admin' ? 'Recent School Activity' : 'My Recovery Activity'}</h2>
@@ -244,10 +271,16 @@ const Dashboard = () => {
                                         </div>
                                     </div>
                                     <div className="p-details">
-                                        <div className="p-row"><span>Node</span> <strong>Missouri-SC1</strong></div>
-                                        <div className="p-row"><span>Security</span> <strong>Level 2</strong></div>
+                                        <div className="p-row"><span>Institutional Node</span> <strong>{userSchool?.name || 'Academic Network'}</strong></div>
+                                        <div className="p-row"><span>System Security</span> <strong>Level 2 Verified</strong></div>
+                                        <div className="p-row"><span>Recovery Status</span> <strong>Active</strong></div>
                                     </div>
-                                    <button className="btn-ghost full" onClick={() => { dispatch({ type: 'LOGOUT' }); navigate('/'); }}>Deauthenticate</button>
+                                    <button className="btn-ghost full" onClick={() => { dispatch({ type: 'LOGOUT' }); navigate('/'); }}>Deauthenticate Session</button>
+                                </div>
+
+                                <div className="side-banner glass">
+                                    <ShieldCheck size={28} color="var(--color-primary)" />
+                                    <p>Your institutional access is secured via end-to-end recovery protocols.</p>
                                 </div>
                             </aside>
                         </div>
@@ -324,9 +357,29 @@ const Dashboard = () => {
                 .approval-wall { text-align: center; padding: 60px; background: white; border-radius: 30px; box-shadow: var(--shadow-xl); max-width: 600px; margin: 40px auto; border: 1px solid var(--border-glass); }
                 .icon-main { width: 80px; height: 80px; background: #FEE2E2; color: #EF4444; border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px; }
 
+                .dash-grid-v5 { display: grid; grid-template-columns: 1fr 320px; gap: 30px; }
+                .dash-main-v5 { display: flex; flex-direction: column; gap: 30px; }
+
+                .intel-sec-v5 { padding: 30px; border-radius: 24px; background: white; border: 1px solid var(--border-glass); }
+                .sec-header-v5 .h-left { display: flex; align-items: center; gap: 12px; }
+                .live-status { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 800; color: #10B981; background: #DCFCE7; padding: 4px 12px; border-radius: 20px; }
+                .pulse { width: 8px; height: 8px; background: #10B981; border-radius: 50%; box-shadow: 0 0 0 rgba(16, 185, 129, 0.4); animation: pulse 2s infinite; }
+                @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+
+                .intel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 25px; }
+                .intel-card { background: #F8FAFC; padding: 20px; border-radius: 16px; border: 1px solid #F1F5F9; }
+                .intel-card strong { display: block; font-size: 0.85rem; color: var(--color-dark); margin-bottom: 12px; }
+                .bar-bg { height: 6px; background: #E2E8F0; border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
+                .bar-fill { height: 100%; background: var(--color-primary); border-radius: 10px; }
+                .intel-card span { font-size: 0.7rem; color: var(--text-dim); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+
+                .side-banner { padding: 25px; border-radius: 24px; background: #F5F3FF; border: 1px solid #DDD6FE; display: flex; flex-direction: column; gap: 15px; }
+                .side-banner p { font-size: 0.85rem; color: #6D28D9; font-weight: 600; line-height: 1.5; }
+
                 @media (max-width: 1024px) {
                   .dash-layout-v5 { display: flex; flex-direction: column; }
                   .dash-grid-v5 { grid-template-columns: 1fr; }
+                  .intel-grid { grid-template-columns: 1fr; }
                 }
             `}</style>
         </div >

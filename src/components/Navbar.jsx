@@ -31,7 +31,7 @@ const Navbar = () => {
           Retrace<span>MO</span>
         </Link>
 
-        {state.user && (
+        {state.user ? (
           <div className="nav-v5-links">
             {navLinks.map((link) => (
               <Link
@@ -44,7 +44,7 @@ const Navbar = () => {
               </Link>
             ))}
           </div>
-        )}
+        ) : null}
 
 
         <div className="nav-user">
