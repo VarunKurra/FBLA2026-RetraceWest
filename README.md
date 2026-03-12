@@ -1,32 +1,32 @@
-# 🕵️ Project Retrace
+# Project Retrace
 
-hey! so this is **Retrace**, a lost and found app i built for FBLA 2026. basically, it's meant to help students find their lost stuff around campus without all the usual stress. 
+Retrace is a high-precision lost and found application designed for the FBLA 2026 competition. It focuses on providing a modern, secure, and intuitive platform for campus communities to recover lost items through advanced searching and mapping.
 
-i wanted to make it feel super modern and actually useful, so i added some pretty cool tech under the hood.
+The application is built with a focus on visual excellence and functional depth, ensuring a premium experience for both students and administrators.
 
-## 🚀 check it out
-**Live Site:** [https://retrace-mo.vercel.app](https://retrace-mo.vercel.app)
+## Live Deployment
+Live Site: [https://retrace-mo.vercel.app](https://retrace-mo.vercel.app)
 
-## ✨ key features (the cool stuff)
+## Key Features
 
-*   **Neural Search 🧠:** okay, this is my favorite part. instead of just searching for keywords, you can actually describe what you lost in plain english (like "my crusty blue water bottle") and the AI (Groq + Llama 3) will try to find it. super helpful if you don't know the exact name of the item.
-*   **Spatial Map 📍:** it's got a map view where you can see exactly where items were found. it even helps you navigate to them.
-*   **Admin Console 🛡️:** i built a professional dashboard for school staff to manage all the reports, approve claims, and keep things organized.
-*   **Premium UI ✨:** worked really hard on the design. it uses glassmorphism, smooth animations (thanks to framer-motion), and it's fully responsive so it looks great on a phone too.
+*   **Neural Search:** Powered by Groq and Llama 3, the application supports semantic search. Users can describe items in natural language rather than relying on exact keyword matches.
+*   **Spatial Mapping:** An integrated map view allows users to visualize where items were found and provides navigation protocols for recovery.
+*   **Administrative Management:** A comprehensive dashboard for school staff to moderate reports, verify claims, and monitor system-wide recovery statistics.
+*   **Premium Design:** Built with a "v5" glassmorphism design system, featuring fluid animations via Framer Motion and full mobile responsiveness.
 
-## 🛠️ tech stack
-*   **Frontend:** React + Vite (speed is key ⚡)
-*   **Styling:** Vanilla CSS (custom designed from scratch)
-*   **Animations:** Framer Motion
-*   **Backend/DB:** Supabase
-*   **AI:** Groq API (Llama-3-8b)
+## Technology Stack
+*   **Frontend:** React (Vite)
+*   **Visuals & Logic:** Framer Motion, Lucide React
+*   **State Management:** React Context API
+*   **Backend Support:** Supabase
+*   **AI Engine:** Groq API (Llama-3-8b)
 
-## 🏗️ how to run it locally
-if you want to play around with the code, here's how to get it running:
+## Local Development
+To run this project locally:
 
-1.  clone the repo: `git clone https://github.com/VarunKurra/FBLA2026.git`
-2.  install dependencies: `npm install`
-3.  create a `.env` file and add your `VITE_GROQ_API_KEY`
-4.  start the dev server: `npm run dev`
+1.  Clone the repository: `git clone https://github.com/VarunKurra/FBLA2026.git`
+2.  Install dependencies: `npm install`
+3.  Set up environment variables: Add your `VITE_GROQ_API_KEY` to a `.env` file.
+4.  Launch the development server: `npm run dev`
 
-hope you like it! let me know if you have any questions. ✌️
+All source code has been documented with relevant context to ensure maintainability.

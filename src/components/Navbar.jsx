@@ -41,12 +41,7 @@ const Navbar = () => {
               <span className="n-ico">{link.icon}</span>
               <span className="n-lbl">{link.label}</span>
             </Link>
-          )) : (
-            <div className="nav-guest-links">
-              <Link to="/" className="nav-v5-link">Home</Link>
-              <Link to="/auth" className="nav-v5-link">Verify Identity</Link>
-            </div>
-          )}
+          ) : null}
         </div>
 
 
