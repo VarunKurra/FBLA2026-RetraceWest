@@ -31,18 +31,20 @@ const Navbar = () => {
           Retrace<span>MO</span>
         </Link>
 
-        <div className="nav-v5-links">
-          {state.user ? navLinks.map((link) => (
-            <Link
-              key={link.path}
-              to={link.path}
-              className={`nav-v5-link ${location.pathname === link.path ? 'active' : ''}`}
-            >
-              <span className="n-ico">{link.icon}</span>
-              <span className="n-lbl">{link.label}</span>
-            </Link>
-          ) : null}
-        </div>
+        {state.user && (
+          <div className="nav-v5-links">
+            {navLinks.map((link) => (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`nav-v5-link ${location.pathname === link.path ? 'active' : ''}`}
+              >
+                <span className="n-ico">{link.icon}</span>
+                <span className="n-lbl">{link.label}</span>
+              </Link>
+            ))}
+          </div>
+        )}
 
 
         <div className="nav-user">
