@@ -288,15 +288,15 @@ const Home = () => {
         .sh-img { width: 100%; height: auto; display: block; }
 
         @media (max-width: 960px) {
-           .split-hero { padding: 80px 0; }
+           .split-hero { padding: 60px 0; }
            .sh-grid { display: flex; flex-direction: column; text-align: center; gap: 0; }
            .sh-text { display: contents; }
            .hero-badge { order: 1; }
-           .hero-h1 { order: 2; font-size: clamp(2.2rem, 8vw, 3rem); }
-           .hero-lead { order: 3; font-size: 1.1rem; padding: 0 10px; margin-bottom: 30px; }
-           .sh-image-wrapper { order: 4; transform: scale(0.85); transform-origin: top center; margin-bottom: 30px; }
-           .hero-actions { order: 5; justify-content: center; flex-wrap: wrap; gap: 10px; }
-           .btn-modern { padding: 12px 20px; font-size: 0.95rem; }
+           .hero-h1 { order: 2; font-size: clamp(2rem, 7.5vw, 2.8rem); margin-bottom: 20px; }
+           .hero-lead { order: 3; font-size: 0.95rem; line-height: 1.5; padding: 0 5px; margin-bottom: 20px; }
+           .sh-image-wrapper { order: 4; transform: scale(0.68); transform-origin: top center; margin-bottom: 10px; margin-top: -15px; }
+           .hero-actions { order: 5; justify-content: center; flex-wrap: wrap; gap: 8px; }
+           .btn-modern { padding: 10px 18px; font-size: 0.9rem; }
         }
         
         /* ── BUTTONS ── */
