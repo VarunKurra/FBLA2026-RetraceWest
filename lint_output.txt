@@ -1,0 +1,45 @@
+
+> vogue-vault@0.0.0 lint
+> eslint .
+
+
+/Users/varun/Downloads/LostAndFoundFBLA/src/components/PrecisionNavigator.jsx
+    2:10  error    'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                             no-unused-vars
+    6:39  error    'onArrival' is defined but never used                                                                     no-unused-vars
+   14:12  error    'routeCoords' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u               no-unused-vars
+   14:25  error    'setRouteCoords' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u            no-unused-vars
+  230:8   warning  React Hook useEffect has a missing dependency: 'speak'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/varun/Downloads/LostAndFoundFBLA/src/context/AppContext.jsx
+  223:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/varun/Downloads/LostAndFoundFBLA/src/pages/About.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/varun/Downloads/LostAndFoundFBLA/src/pages/Admin.jsx
+  53:3  error  React Hook "useEffect" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+
+/Users/varun/Downloads/LostAndFoundFBLA/src/pages/Dashboard.jsx
+  11:10  error  'recentFound' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  44:22  error  'lastName' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u     no-unused-vars
+
+/Users/varun/Downloads/LostAndFoundFBLA/src/pages/Home.jsx
+  3:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/varun/Downloads/LostAndFoundFBLA/src/pages/Leaderboard.jsx
+   2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u             no-unused-vars
+  27:9   error  'navigate' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/varun/Downloads/LostAndFoundFBLA/src/pages/Registry.jsx
+    2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u               no-unused-vars
+  145:11  error  'userSchool' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/varun/Downloads/LostAndFoundFBLA/src/pages/Report.jsx
+   2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                no-unused-vars
+  54:41  error  React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+
+/Users/varun/Downloads/LostAndFoundFBLA/src/pages/SpatialMap.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+✖ 18 problems (17 errors, 1 warning)
+

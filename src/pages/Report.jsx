@@ -1,16 +1,37 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    PlusCircle, MapPin, Search, Navigation,
-    Camera, Info, AlertCircle, CheckCircle2,
-    Crosshair, MousePointer2
+    PlusCircle, MapPin, Navigation,
+    Camera, Info, CheckCircle2, CheckCircle,
+    Trophy, ChevronRight, ArrowRight, X
 } from 'lucide-react';
-import MapView from '../components/MapView';
-import { useApp, MISSOURI_SCHOOLS } from '../context/AppContext';
+import { useApp, PARKWAY_WEST } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
+import MapView from '../components/MapView';
 
-// the place where people report their lost airpods lol
+const CAMPUS_LOCATIONS = [
+    { name: 'Main Office',          coords: [38.6230, -90.5350] },
+    { name: 'Commons / Cafeteria',  coords: [38.6226, -90.5345] },
+    { name: 'Library',              coords: [38.6232, -90.5342] },
+    { name: 'Gym (Main)',           coords: [38.6224, -90.5355] },
+    { name: 'Gym (Auxiliary)',      coords: [38.6222, -90.5358] },
+    { name: 'A-Hall',               coords: [38.6231, -90.5340] },
+    { name: 'B-Hall',               coords: [38.6233, -90.5338] },
+    { name: 'C-Hall',               coords: [38.6235, -90.5336] },
+    { name: 'D-Hall',               coords: [38.6237, -90.5334] },
+    { name: 'E-Hall',               coords: [38.6239, -90.5332] },
+    { name: 'Fine Arts Wing',       coords: [38.6234, -90.5330] },
+    { name: 'Science Wing',         coords: [38.6236, -90.5328] },
+    { name: 'Parking Lot A',        coords: [38.6220, -90.5348] },
+    { name: 'Parking Lot B',        coords: [38.6218, -90.5344] },
+    { name: 'Auditorium',           coords: [38.6228, -90.5356] },
+    { name: 'Band Room',            coords: [38.6226, -90.5358] },
+    { name: 'Counseling Office',    coords: [38.6230, -90.5344] },
+    { name: 'Student Entrance',     coords: [38.6222, -90.5350] },
+    { name: 'Weight Room',          coords: [38.6220, -90.5357] },
+    { name: 'Pool / Natatorium',    coords: [38.6219, -90.5360] },
+];
+
 const Report = () => {
     const { state, dispatch } = useApp();
     const navigate = useNavigate();
@@ -19,374 +40,321 @@ const Report = () => {
     const [category, setCategory] = useState('Electronics');
     const [type, setType] = useState('lost');
     const [locationName, setLocationName] = useState('');
+    const [customLocation, setCustomLocation] = useState('');
     const [desc, setDesc] = useState('');
+    const [locMode, setLocMode] = useState('grid');
     const [coords, setCoords] = useState(null);
-    const [pickingMode, setPickingMode] = useState('none'); // 'current' or 'manual'
     const [image, setImage] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
+    const [submitError, setSubmitError] = useState(null);
     const fileInputRef = useRef(null);
 
     if (!state.user) {
         return (
-            <div className="auth-barrier">
-                <motion.div
-                    className="auth-barrier-card glass"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                >
-                    <div className="barrier-icon">
-                        <PlusCircle size={42} />
-                    </div>
-                    <h2>Contributor Access</h2>
-                    <p>Contribute to your campus network. Please sign in to securely report lost or found items.</p>
-                    <button className="btn-primary" onClick={() => navigate('/auth')}>
-                        Secure Sign In <ChevronRight size={20} />
+            <div className="rp-auth-barrier">
+                <motion.div className="rp-auth-card" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+                    <div className="rp-auth-icon"><PlusCircle size={40} /></div>
+                    <h2>Sign In Required</h2>
+                    <p>You need a @parkwayschools.net account to report lost or found items on campus.</p>
+                    <button className="btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: 8 }} onClick={() => navigate('/auth')}>
+                        Sign In — Longhorns <ChevronRight size={18} />
                     </button>
                 </motion.div>
+                <style>{`
+                    .rp-auth-barrier { min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--off-white); padding:24px; padding-top:var(--nav-h); }
+                    .rp-auth-card { background:white; border:1px solid var(--gray-200); border-radius:24px; padding:48px 40px; max-width:420px; width:100%; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.08); }
+                    .rp-auth-icon { width:72px;height:72px;border-radius:50%;background:var(--red-light);color:var(--red);display:flex;align-items:center;justify-content:center;margin:0 auto 20px; }
+                    .rp-auth-card h2 { font-size:1.6rem;font-weight:800;color:var(--navy);margin-bottom:10px; }
+                    .rp-auth-card p { color:var(--gray-500);line-height:1.6; }
+                `}</style>
             </div>
         );
     }
 
-    const userSchool = MISSOURI_SCHOOLS.find(s => s.id === state.user.schoolId);
-
-    const handleUseCurrentLocation = () => {
-        setCoords(state.myLocation);
-        setPickingMode('current');
+    const pickLocation = (loc) => {
+        setCoords(loc.coords);
+        setLocationName(loc.name);
+        setCustomLocation('');
     };
 
-    const handleMapClick = (newCoords) => {
-        setCoords(newCoords);
-        setPickingMode('manual');
+    const handleCustomLocation = (val) => {
+        setCustomLocation(val);
+        setLocationName(val);
+        setCoords([38.6228, -90.5347]);
     };
-
-    const [submitting, setSubmitting] = useState(false);
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setImage(reader.result);
+        if (!file) return;
+        if (file.size > 500 * 1024) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            img.onload = () => {
+                const maxDim = 800;
+                let w = img.width, h = img.height;
+                if (w > maxDim || h > maxDim) {
+                    if (w > h) { h = (h / w) * maxDim; w = maxDim; }
+                    else { w = (w / h) * maxDim; h = maxDim; }
+                }
+                canvas.width = w;
+                canvas.height = h;
+                ctx.drawImage(img, 0, 0, w, h);
+                setImage(canvas.toDataURL('image/jpeg', 0.6));
             };
+            img.src = URL.createObjectURL(file);
+        } else {
+            const reader = new FileReader();
+            reader.onloadend = () => setImage(reader.result);
             reader.readAsDataURL(file);
         }
     };
 
     const handleSubmit = async () => {
-        if (!title || !locationName || !coords) {
-            alert('Please fill out all required fields and mark a location.');
+        if (!state.user || state.user.status === 'banned') {
+            alert('Your account is restricted from submitting reports. Contact administration.');
             return;
         }
+        if (!title.trim()) { alert('Please enter a title for the item.'); return; }
+        if (!locationName.trim()) { alert('Please select or enter a campus location.'); return; }
+
+        const finalCoords = coords || [38.6228, -90.5347];
 
         setSubmitting(true);
-        const newItem = {
-            id: `it-${Date.now()}`, // Temporary fallback ID if supabase doesn't auto-gen or we don't have select privileges
-            schoolId: state.user.schoolId,
+        setSubmitError(null);
+
+        const localItem = {
+            id: `it-${Date.now()}`,
+            schoolId: 'parkway-west',
+            school_id: 'parkway-west',
             type,
-            title,
+            title: title.trim(),
             category,
-            location: locationName,
-            coords, // Supabase jsonb handles array
-            reporter: state.user.name,
-            status: 'listed',
+            location: locationName.trim(),
+            location_name: locationName.trim(),
+            coords: finalCoords,
+            description: desc.trim(),
+            reporter: state.user.firstName || 'Student',
+            reporter_id: state.user.id || null,
+            status: 'active',
+            created_at: new Date().toISOString(),
             timestamp: Date.now(),
-            desc,
-            image // Add image to item object
+            image,
         };
 
-        const { data, error } = await supabase.from('items').insert([newItem]).select();
+        // Immediately add to local state — this is instant
+        dispatch({ type: 'ADD_ITEM', payload: localItem });
+
+        // Award points immediately
+        const pointsEarned = type === 'found' ? 10 : 5;
+        const newPoints = (state.user.points || 0) + pointsEarned;
+        dispatch({ type: 'UPDATE_USER_POINTS', payload: newPoints });
+
+        // Show success immediately — don't wait for Supabase
         setSubmitting(false);
+        setSubmitted(true);
 
-        if (error) {
-            console.error("Supabase insert error, falling back to local state:", error.message);
-            dispatch({ type: 'ADD_ITEM', payload: newItem });
-        } else if (data && data.length > 0) {
-            dispatch({ type: 'ADD_ITEM', payload: data[0] });
-        } else {
-            dispatch({ type: 'ADD_ITEM', payload: newItem });
+        // Try to persist to Supabase in the background (fire-and-forget)
+        try {
+            const { supabase } = await import('../supabaseClient');
+            const dbItem = { ...localItem };
+            delete dbItem.image; // Don't send base64 to DB
+            delete dbItem.timestamp;
+            delete dbItem.schoolId;
+
+            // Use a promise race with a 4 second timeout
+            await Promise.race([
+                supabase.from('items').insert([dbItem]),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
+            ]);
+        } catch (err) {
+            // Silently fail — item is already in local state
+            console.log('Background DB insert skipped:', err.message || err);
         }
-
-        navigate('/registry');
     };
 
-    return (
-        <div className="report-v5 page-wrapper">
-            <div className="container">
-                <header className="report-header-v5">
-                    <div className="header-txt">
-                        <div className="badge">{userSchool?.name || 'Local Campus'} Reporter</div>
-                        <h1>List an Item</h1>
-                        <p>Provide details and mark a precise location to help the community recover this item.</p>
+    if (submitted) {
+        return (
+            <div className="rp-success-screen">
+                <motion.div className="rp-success-card" initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, type: 'spring' }}>
+                    <div className="rp-success-icon"><CheckCircle size={48} /></div>
+                    <h2>Report Submitted!</h2>
+                    <p>Your {type} item report has been added to the campus registry. {type === 'found' && 'You earned +10 pts!'}</p>
+                    <div className="rp-success-btns">
+                        <button className="btn-primary" onClick={() => navigate('/registry')}>Browse Registry <ArrowRight size={16}/></button>
+                        <button className="btn-ghost" onClick={() => { setSubmitted(false); setTitle(''); setDesc(''); setCoords(null); setLocationName(''); setImage(null); setCustomLocation(''); }}>Report Another</button>
                     </div>
-                </header>
+                </motion.div>
+                <style>{`
+                    .rp-success-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--off-white);padding:24px;padding-top:var(--nav-h);}
+                    .rp-success-card{background:white;border:1px solid var(--gray-200);border-radius:24px;padding:56px 48px;max-width:480px;width:100%;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,0.08);}
+                    .rp-success-icon{width:88px;height:88px;border-radius:50%;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;}
+                    .rp-success-card h2{font-size:2rem;font-weight:900;color:var(--navy);margin-bottom:12px;letter-spacing:-0.02em;}
+                    .rp-success-card p{color:var(--gray-500);line-height:1.7;margin-bottom:32px;}
+                    .rp-success-btns{display:flex;flex-direction:column;gap:12px;}
+                `}</style>
+            </div>
+        );
+    }
 
-                <div className="report-grid-v5">
-                    {/* LEFT FORM */}
-                    <div className="report-form glass animate-fade">
-                        <div className="form-info-card">
-                            <Info size={18} />
-                            <p>Verify all details before submitting. Precise locations help students recover items faster.</p>
+    return (
+        <div className="report-pw" style={{ minHeight: '100vh', background: 'var(--off-white)', paddingTop: 'var(--nav-h)' }}>
+            <motion.section className="rp-header" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+                <div className="container" style={{ maxWidth: 920 }}>
+                    <div className="rp-badge">Create Report</div>
+                    <h1>Report an Item</h1>
+                    <p>Report something you lost, or something you found to help a fellow Longhorn.</p>
+                </div>
+            </motion.section>
+
+            <section style={{ padding: '48px 0 80px' }}>
+                <div className="container" style={{ maxWidth: 1300 }}>
+                    <motion.div className="rp-type-toggle" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                        <button className={`rp-toggle-btn ${type === 'lost' ? 'active-lost' : ''}`} onClick={() => setType('lost')}>Lost Item Report</button>
+                        <button className={`rp-toggle-btn ${type === 'found' ? 'active-found' : ''}`} onClick={() => setType('found')}>Found Item Report</button>
+                    </motion.div>
+
+                    <AnimatePresence mode="wait">
+                        <motion.div key={type} className={`rp-points-banner ${type}`} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                            {type === 'found'
+                                ? <><Trophy size={16}/> <strong>Good Samaritan:</strong> You'll earn +10 pts for reporting a found item.</>
+                                : <><Info size={16}/> <strong>Community Alert:</strong> We'll notify you if a match is found. (+5 pts for reporting)</>
+                            }
+                        </motion.div>
+                    </AnimatePresence>
+
+                    {submitError && (
+                        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '12px 16px', borderRadius: 12, marginBottom: 20, fontSize: '0.9rem' }}>
+                            {submitError}
                         </div>
+                    )}
 
-                        <div className="form-sec">
-                            <label>Item Designation</label>
-                            <input
-                                type="text"
-                                className="premium-input"
-                                placeholder="e.g. Silver MacBook Air, Blue Gatorade..."
-                                value={title}
-                                onChange={e => setTitle(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="form-row">
-                            <div className="form-sec">
+                    <div className="rp-form-grid">
+                        <motion.div className="rp-card" initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}>
+                            <div className="rp-card-header"><span className="rp-step">1</span><h3>Item Details</h3></div>
+                            <div className="rp-field">
+                                <label>What is it? <span className="req">*</span></label>
+                                <input type="text" placeholder="e.g. Navy Blue TI-84 Calculator" value={title} onChange={e => setTitle(e.target.value)} maxLength={50} />
+                            </div>
+                            <div className="rp-field">
                                 <label>Category</label>
-                                <select className="premium-select" value={category} onChange={e => setCategory(e.target.value)}>
-                                    <option>Electronics</option>
-                                    <option>Jewelry</option>
-                                    <option>Pets</option>
-                                    <option>Documents</option>
-                                    <option>Accessories</option>
-                                    <option>Other</option>
+                                <select value={category} onChange={e => setCategory(e.target.value)}>
+                                    <option>Electronics</option><option>Clothing</option><option>Accessories</option><option>School Supplies</option><option>Keys / IDs</option><option>Jewelry</option><option>Other</option>
                                 </select>
                             </div>
-                            <div className="form-sec">
-                                <label>Report Protocol</label>
-                                <div className="type-toggle-v5">
-                                    <button
-                                        className={`t-btn-v5 lost ${type === 'lost' ? 'active' : ''}`}
-                                        onClick={() => setType('lost')}
-                                    >LOST</button>
-                                    <button
-                                        className={`t-btn-v5 found ${type === 'found' ? 'active' : ''}`}
-                                        onClick={() => setType('found')}
-                                    >FOUND</button>
+                            <div className="rp-field">
+                                <label>Description <span className="rp-char-ct">{desc.length}/200</span></label>
+                                <textarea rows={4} placeholder="Any unique features, markings, or serial numbers..." value={desc} onChange={e => setDesc(e.target.value)} maxLength={200} />
+                            </div>
+                            <div className="rp-field">
+                                <label>Photo <span style={{ fontWeight: 400, color: 'var(--gray-400)' }}>(Optional)</span></label>
+                                <div className="rp-photo-box" onClick={() => fileInputRef.current?.click()}>
+                                    {image ? (
+                                        <div className="rp-photo-preview"><img src={image} alt="Preview" /><div className="rp-photo-overlay">Click to change</div></div>
+                                    ) : (
+                                        <div className="rp-photo-empty"><Camera size={28} /><span>Click to upload a photo</span></div>
+                                    )}
                                 </div>
+                                <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileChange} />
                             </div>
-                        </div>
+                        </motion.div>
 
-                        <div className="form-sec">
-                            <label>Contextual Location</label>
-                            <div className="input-with-icon">
-                                <MapPin size={16} className="i-ico" />
-                                <input
-                                    type="text"
-                                    className="premium-input with-ico"
-                                    placeholder="e.g. Near the 2nd floor elevator"
-                                    value={locationName}
-                                    onChange={e => setLocationName(e.target.value)}
-                                />
+                        <motion.div className="rp-card" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
+                            <div className="rp-card-header"><span className="rp-step">2</span><h3>Campus Location <span className="req">*</span></h3></div>
+                            <p style={{ fontSize: '0.9rem', color: 'var(--gray-500)', marginBottom: 16 }}>Select where you {type === 'lost' ? 'last saw' : 'found'} the item:</p>
+                            <div className="loc-mode-toggle" style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                                <button className={`loc-mode-btn ${locMode === 'grid' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setLocMode('grid'); }}>Quick Select</button>
+                                <button className={`loc-mode-btn ${locMode === 'map' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setLocMode('map'); }}>Map Pin</button>
                             </div>
-                        </div>
 
-                        <div className="form-sec">
-                            <label>Geospatial Precision</label>
-                            <div className="loc-selector-v5">
-                                <motion.button
-                                    whileHover={{ y: -2 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    className={`loc-method-v5 ${pickingMode === 'current' ? 'active' : ''}`}
-                                    onClick={handleUseCurrentLocation}
-                                >
-                                    <div className="m-ico"><Crosshair size={18} /></div>
-                                    <div className="txt">
-                                        <strong>Current GPS</strong>
-                                        <span>Auto-detect position</span>
-                                    </div>
-                                </motion.button>
-                                <motion.button
-                                    whileHover={{ y: -2 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    className={`loc-method-v5 ${pickingMode === 'manual' ? 'active' : ''}`}
-                                    onClick={() => setPickingMode('manual')}
-                                >
-                                    <div className="m-ico"><MousePointer2 size={18} /></div>
-                                    <div className="txt">
-                                        <strong>Manual Pin</strong>
-                                        <span>Tap map to mark</span>
-                                    </div>
-                                </motion.button>
+                            {locMode === 'grid' ? (
+                                <div className="rp-location-grid">
+                                    {CAMPUS_LOCATIONS.map((loc) => (
+                                        <button key={loc.name} className={`rp-loc-btn ${locationName === loc.name ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); pickLocation(loc); }}>
+                                            <MapPin size={12} />{loc.name}{locationName === loc.name && <CheckCircle2 size={12} style={{ marginLeft: 'auto', color: '#16a34a' }} />}
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="rp-map-picker" style={{ height: 350, width: '100%', borderRadius: 14, overflow: 'hidden', border: '1.5px solid var(--gray-200)', marginBottom: 8 }}>
+                                    <MapView enable3D={false} onMapClick={(c) => { setCoords(c); setLocationName('Pinned on Map'); setCustomLocation(''); }}
+                                        items={coords ? [{ id: 'pin', type: type, coords: coords }] : []}
+                                        schoolBoundary={{ center: [-90.5347, 38.6228], radius: 0.25 * 1609.34 }} />
+                                </div>
+                            )}
+
+                            <div className="rp-field" style={{ marginTop: 20 }}>
+                                <label>Or type a custom location</label>
+                                <input type="text" placeholder="e.g. Room 214, 2nd Floor Science" value={customLocation} onChange={e => handleCustomLocation(e.target.value)} maxLength={60} />
                             </div>
+
                             {coords && (
-                                <motion.div
-                                    className="coords-badge-v5 animate-fade"
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                >
-                                    <CheckCircle2 size={14} /> Node Synchronized: {coords[0].toFixed(4)}, {coords[1].toFixed(4)}
+                                <motion.div className="rp-location-confirmed" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                                    <CheckCircle2 size={16} />
+                                    <div><strong>Location set:</strong> {locationName}<div style={{ fontSize: '0.75rem', color: 'var(--gray-400)', marginTop: 2 }}>{coords[0].toFixed(4)}°N, {Math.abs(coords[1]).toFixed(4)}°W</div></div>
+                                    <button onClick={() => { setCoords(null); setLocationName(''); setCustomLocation(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray-400)', marginLeft: 'auto' }}><X size={16}/></button>
                                 </motion.div>
                             )}
-                        </div>
-
-                        <div className="form-sec">
-                            <label>Visual Identity (Photo Verification)</label>
-                            <motion.div
-                                whileHover={{ borderColor: "var(--color-primary)" }}
-                                className={`photo-upload-v5-premium ${image ? 'has-image' : ''}`}
-                                onClick={() => fileInputRef.current.click()}
-                            >
-                                {image ? (
-                                    <div className="preview-container-v5">
-                                        <img src={image} alt="Preview" />
-                                        <div className="change-hint-v5">Tap to update visual identification</div>
-                                    </div>
-                                ) : (
-                                    <div className="upload-placeholder-v5">
-                                        <div className="cam-ico"><Camera size={32} /></div>
-                                        <span>Capture or Upload Item Image</span>
-                                        <small>Maximum 5MB • JPG, PNG</small>
-                                    </div>
-                                )}
-                            </motion.div>
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                style={{ display: 'none' }}
-                                accept="image/*"
-                                onChange={handleFileChange}
-                            />
-                        </div>
-
-                        <div className="form-sec">
-                            <label>Detailed Specifications</label>
-                            <textarea
-                                className="premium-textarea"
-                                rows="3"
-                                placeholder="Unique identifiers, serial numbers, specific damage..."
-                                value={desc}
-                                onChange={e => setDesc(e.target.value)}
-                            ></textarea>
-                        </div>
-
-                        <motion.button
-                            whileHover={{ y: -4 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="btn-primary full-width submit-btn-v5"
-                            onClick={handleSubmit}
-                            disabled={submitting}
-                        >
-                            {submitting ? 'Encrypting & Sending...' : 'Broadcast to Campus Network'}
-                            {!submitting && <Navigation size={18} />}
-                        </motion.button>
+                        </motion.div>
                     </div>
 
-                    {/* RIGHT MAP */}
-                    <div className="report-map-side">
-                        <div className="map-frame glass">
-                            <MapView
-                                userLocation={coords || state.myLocation}
-                                items={coords ? [{ id: 'temp', coords, type: type }] : []}
-                                schoolBoundary={{
-                                    center: userSchool?.coords || state.myLocation,
-                                    radius: (userSchool?.radius || 1.0) * 1609.34
-                                }}
-                                onMapClick={handleMapClick}
-                                mapStyle="satellite"
-                            />
-                            {!coords && (
-                                <div className="map-overlay">
-                                    <div className="hint-pill">Tap Map to Mark Location</div>
-                                </div>
-                            )}
-                        </div>
-                        <div className="map-guidance">
-                            <Info size={16} />
-                            <span>Precision listing increases recovery rates by 42%.</span>
-                        </div>
-                    </div>
+                    <motion.div className="rp-submit-bar" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                        <div><p style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>This report will be visible to all verified Parkway West students.</p></div>
+                        <button className="btn-primary rp-submit-btn" onClick={handleSubmit} disabled={submitting || !title || !locationName || state.user?.status === 'banned'}>
+                            {submitting ? 'Submitting...' : state.user?.status === 'banned' ? 'Account Restricted' : `Submit ${type === 'lost' ? 'Lost' : 'Found'} Report`}
+                            {!submitting && <ArrowRight size={18} />}
+                        </button>
+                    </motion.div>
                 </div>
-            </div>
+            </section>
 
             <style>{`
-                .report-v5 { background: #F8FAFC; }
-                .report-header-v5 { margin-bottom: 50px; }
-                .badge { 
-                    display: inline-block; background: #EEF2FF; color: var(--color-primary); 
-                    padding: 6px 14px; border-radius: 30px; font-size: 0.8rem; font-weight: 700; margin-bottom: 1.5rem;
-                }
-                .header-txt h1 { font-size: 2.8rem; color: var(--color-dark); margin-bottom: 0.5rem; }
-                .header-txt p { font-size: 1.1rem; color: var(--text-dim); }
-
-                .report-grid-v5 { display: grid; grid-template-columns: 500px 1fr; gap: 40px; }
-                
-                .report-form { padding: 3rem; border-radius: 40px; background: white; display: flex; flex-direction: column; gap: 1.8rem; box-shadow: var(--shadow-xl); border: 1px solid var(--border-glass); }
-                .form-info-card { display: flex; gap: 12px; background: var(--color-primary-soft); color: var(--color-primary-deep); padding: 15px; border-radius: 16px; font-size: 0.85rem; font-weight: 600; line-height: 1.5; }
-                
-                .form-sec { display: flex; flex-direction: column; gap: 0.8rem; }
-                .form-sec label { font-size: 0.85rem; font-weight: 800; color: var(--color-dark); text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.8; }
-                
-                .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-                
-                .premium-input, .premium-select, .premium-textarea {
-                    background: #F8FAFC; border: 2px solid #F1F5F9; border-radius: 14px; padding: 14px 18px;
-                    font-size: 0.95rem; font-weight: 500; font-family: inherit; transition: all 0.2s;
-                }
-                .premium-input:focus, .premium-select:focus, .premium-textarea:focus { border-color: var(--color-primary); background: white; outline: none; box-shadow: 0 0 0 4px var(--color-primary-soft); }
-                
-                .input-with-icon { position: relative; }
-                .input-with-icon .i-ico { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: var(--color-primary); }
-                .with-ico { padding-left: 48px; }
-
-                .type-toggle-v5 { display: flex; background: #F8FAFC; padding: 6px; border-radius: 16px; gap: 8px; border: 2px solid #F1F5F9; }
-                .t-btn-v5 { flex: 1; border: none; padding: 12px; border-radius: 12px; cursor: pointer; font-weight: 800; font-size: 0.8rem; transition: all 0.2s; background: transparent; color: var(--text-dim); }
-                .t-btn-v5.lost.active { background: #EF4444; color: white; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
-                .t-btn-v5.found.active { background: #10B981; color: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
-                
-                .loc-selector-v5 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-                .loc-method-v5 { 
-                    display: flex; align-items: center; gap: 12px; padding: 14px;
-                    background: white; border: 2px solid #F1F5F9; border-radius: 16px;
-                    text-align: left; cursor: pointer; transition: all 0.2s;
-                }
-                .loc-method-v5.active { border-color: var(--color-primary); background: var(--color-primary-soft); color: var(--color-primary); }
-                .loc-method-v5 .m-ico { width: 40px; height: 40px; background: #F8FAFC; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-                .loc-method-v5.active .m-ico { background: white; color: var(--color-primary); }
-                .loc-method-v5 strong { display: block; font-size: 0.85rem; margin-bottom: 2px; }
-                .loc-method-v5 span { font-size: 0.7rem; opacity: 0.7; }
-                
-                .coords-badge-v5 { 
-                    display: inline-flex; align-items: center; gap: 8px; font-size: 0.8rem; 
-                    background: #DCFCE7; color: #059669; padding: 8px 16px; border-radius: 10px; font-weight: 700;
-                    margin-top: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-                }
-
-                .photo-upload-v5-premium {
-                    border: 2px dashed #CBD5E1;
-                    border-radius: 20px;
-                    height: 180px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    overflow: hidden;
-                    background: #F8FAFC;
-                }
-                .photo-upload-v5-premium:hover { border-color: var(--color-primary); background: var(--color-primary-soft); transform: scale(1.01); }
-                .photo-upload-v5-premium.has-image { border-style: solid; border-color: #F1F5F9; }
-                
-                .upload-placeholder-v5 { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-dim); text-align: center; }
-                .upload-placeholder-v5 .cam-ico { width: 64px; height: 64px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; box-shadow: var(--shadow-sm); color: var(--color-primary); }
-                .upload-placeholder-v5 span { font-weight: 700; font-size: 0.95rem; color: var(--color-dark); }
-                .upload-placeholder-v5 small { font-size: 0.75rem; opacity: 0.6; }
-
-                .preview-container-v5 { position: relative; width: 100%; height: 100%; }
-                .preview-container-v5 img { width: 100%; height: 100%; object-fit: cover; }
-                .change-hint-v5 { 
-                    position: absolute; bottom: 0; left: 0; right: 0; background: rgba(15, 23, 42, 0.7); 
-                    color: white; font-size: 0.8rem; padding: 12px; text-align: center; backdrop-filter: blur(8px);
-                    font-weight: 600;
-                }
-
-                .submit-btn-v5 { margin-top: 1rem; height: 64px; font-size: 1.1rem; border-radius: 18px; }
-
-                .report-map-side { display: flex; flex-direction: column; gap: 20px; }
-                .map-frame { height: 750px; border-radius: 40px; overflow: hidden; position: relative; box-shadow: var(--shadow-xl); border: 1px solid var(--border-glass); }
-                .map-overlay { position: absolute; inset: 0; pointer-events: none; display: flex; align-items: center; justify-content: center; z-index: 1000; }
-                .hint-pill { background: rgba(15, 23, 42, 0.85); color: white; padding: 14px 28px; border-radius: 40px; font-weight: 700; backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); box-shadow: var(--shadow-xl); }
-                
-                .map-guidance { display: flex; align-items: center; gap: 12px; color: var(--text-dim); font-size: 0.9rem; padding: 15px 25px; background: white; border-radius: 16px; border: 1px solid var(--border-glass); width: fit-content; }
-                .map-guidance span { font-weight: 600; }
+                .rp-header { background: var(--navy); padding: 56px 0 44px; border-bottom: 4px solid var(--red); }
+                .rp-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.7); padding: 6px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 16px; }
+                .rp-header h1 { color: white; font-size: 2.4rem; font-weight: 900; margin-bottom: 10px; letter-spacing: -0.02em; }
+                .rp-header p { color: rgba(255,255,255,0.65); font-size: 1rem; }
+                .rp-type-toggle { display: flex; background: white; border: 2px solid var(--gray-200); border-radius: 16px; padding: 6px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+                .rp-toggle-btn { flex: 1; padding: 16px 24px; border: none; background: transparent; border-radius: 12px; font-size: 1.05rem; font-weight: 700; color: var(--gray-500); cursor: pointer; transition: all 0.25s; letter-spacing: -0.01em; }
+                .rp-toggle-btn.active-lost  { background: #FEE2E2; color: #991b1b; }
+                .rp-toggle-btn.active-found { background: #DCFCE7; color: #166534; }
+                .rp-points-banner { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-radius: 12px; font-size: 0.9rem; margin-bottom: 28px; overflow: hidden; }
+                .rp-points-banner.found { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+                .rp-points-banner.lost { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+                .rp-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+                .rp-card { background: white; border: 1px solid var(--gray-200); border-radius: 20px; padding: 36px; box-shadow: 0 4px 12px -4px rgba(0,0,0,0.06); }
+                .rp-card-header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
+                .rp-step { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--blue) 0%, #1d4ed8 100%); color: white; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 900; flex-shrink: 0; box-shadow: 0 4px 10px rgba(59,130,246,0.35); }
+                .rp-card-header h3 { font-size: 1.4rem; font-weight: 800; color: var(--navy); }
+                .rp-field { margin-bottom: 22px; }
+                .rp-field label { display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; font-weight: 700; color: var(--gray-700); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+                .req { color: var(--red); }
+                .rp-char-ct { font-weight: 400; text-transform: none; color: var(--gray-400); font-size: 0.75rem; }
+                .rp-field input, .rp-field select, .rp-field textarea { width: 100%; background: var(--gray-50); border: 1.5px solid var(--gray-200); border-radius: 12px; padding: 14px 18px; font-size: 1rem; color: var(--navy); font-family: inherit; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+                .rp-field input:focus, .rp-field select:focus, .rp-field textarea:focus { border-color: #3B82F6; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); background: white; }
+                .rp-field textarea { resize: vertical; }
+                .rp-photo-box { border: 2px dashed var(--gray-300); border-radius: 14px; height: 140px; cursor: pointer; overflow: hidden; transition: border-color 0.2s, background 0.2s; }
+                .rp-photo-box:hover { border-color: var(--navy); background: var(--gray-50); }
+                .rp-photo-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--gray-400); gap: 8px; font-size: 0.85rem; font-weight: 600; }
+                .rp-photo-preview { width: 100%; height: 100%; position: relative; }
+                .rp-photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+                .rp-photo-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.45); color: white; display: flex; align-items: center; justify-content: center; opacity: 0; font-weight: 600; font-size: 0.85rem; transition: opacity 0.2s; }
+                .loc-mode-btn { flex: 1; padding: 10px; border-radius: 8px; border: 1.5px solid var(--gray-200); background: var(--white); font-weight: 600; font-size: 0.9rem; color: var(--gray-500); cursor: pointer; transition: all 0.2s; }
+                .loc-mode-btn:hover { background: var(--gray-50); }
+                .loc-mode-btn.active { border-color: var(--blue); background: #eff6ff; color: var(--blue); }
+                .rp-photo-box:hover .rp-photo-overlay { opacity: 1; }
+                .rp-location-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; max-height: 280px; overflow-y: auto; padding-right: 4px; }
+                .rp-location-grid::-webkit-scrollbar { width: 4px; }
+                .rp-location-grid::-webkit-scrollbar-track { background: transparent; }
+                .rp-location-grid::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 4px; }
+                .rp-loc-btn { display: flex; align-items: center; gap: 6px; padding: 9px 12px; border: 1.5px solid var(--gray-200); border-radius: 10px; background: var(--gray-50); font-size: 0.8rem; font-weight: 600; color: var(--gray-700); cursor: pointer; text-align: left; transition: all 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                .rp-loc-btn:hover { border-color: var(--blue); color: var(--blue); background: #eff6ff; }
+                .rp-loc-btn.active { border-color: #16a34a; background: #f0fdf4; color: #166534; }
+                .rp-location-confirmed { display: flex; align-items: flex-start; gap: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 14px 16px; margin-top: 16px; color: #166534; font-size: 0.88rem; }
+                .rp-submit-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 32px; padding: 24px 32px; background: white; border: 1px solid var(--gray-200); border-radius: 20px; box-shadow: 0 4px 12px -4px rgba(0,0,0,0.06); }
+                .rp-submit-btn { padding: 14px 32px; font-size: 1rem; opacity: 1; transition: opacity 0.2s, transform 0.2s; }
+                .rp-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+                @media (max-width: 768px) { .rp-form-grid { grid-template-columns: 1fr; } .rp-submit-bar { flex-direction: column; gap: 16px; align-items: stretch; text-align: center; } .rp-location-grid { grid-template-columns: 1fr; } }
             `}</style>
         </div>
     );

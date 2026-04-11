@@ -1,29 +1,27 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useCallback } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Search, MapPin, Navigation, BookmarkPlus, Crosshair, GraduationCap, Filter, Clock, ChevronRight, Sparkles, BrainCircuit, MessageSquare, Send, X, Camera, ArrowRight, PackageSearch } from 'lucide-react';
 
 
-import { useApp } from '../context/AppContext';
+import { useApp, PARKWAY_WEST } from '../context/AppContext';
 import { MISSOURI_SCHOOLS } from '../data/missouriSchools';
 import { useNavigate } from 'react-router-dom';
 
 const Registry = () => {
-    // tons of state, but it works so i'm not touching it too much
     const { state, dispatch } = useApp();
     const navigate = useNavigate();
 
-    // Neural & Filter State
+    // Search & Filter State
     const [searchTerm, setSearchTerm] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
     const [filterStatus, setFilterStatus] = useState('All');
     const [sortBy, setSortBy] = useState('Default');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-    // AI Search Logic
+    // AI Search State
     const [aiSearching, setAiSearching] = useState(false);
-    const [aiFilteredIds, setAiFilteredIds] = useState(null);
-    const [showAiInput, setShowAiInput] = useState(false);
-    const [aiQuery, setAiQuery] = useState('');
+    const [aiRankedIds, setAiRankedIds] = useState(null); // ordered array of IDs from AI
+    const [aiError, setAiError] = useState(null);
 
     // Inquiry & Claim Protocol
     const [inquiryItem, setInquiryItem] = useState(null);
@@ -87,54 +85,136 @@ const Registry = () => {
         return `${distMi.toFixed(2)} MI`;
     };
 
-    // this search is actually insane, groq is a lifesaver
-    const handleAiSearch = async () => {
-        if (!aiQuery) {
-            setAiFilteredIds(null);
+    // AI-powered search using Groq
+    const handleAiSearch = async (query) => {
+        const searchQuery = query || searchTerm;
+        if (!searchQuery.trim()) {
+            setAiRankedIds(null);
+            setAiError(null);
             return;
         }
+
         setAiSearching(true);
+        setAiError(null);
+
         try {
-            const candidateItems = state.items.filter(i => i.schoolId === state.user.schoolId);
+            const candidateItems = state.items.filter(i =>
+                i.schoolId === state.user.schoolId || i.schoolId === 'parkway-west' || !i.schoolId
+            );
+
+            if (candidateItems.length === 0) {
+                setAiRankedIds([]);
+                setAiSearching(false);
+                return;
+            }
+
+            const itemSummaries = candidateItems.map(i => ({
+                id: i.id,
+                title: i.title || '',
+                category: i.category || '',
+                description: i.description || '',
+                location: i.location_name || i.location || '',
+            }));
+
+            const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+            if (!apiKey) {
+                throw new Error('Groq API key not configured (VITE_GROQ_API_KEY missing from .env)');
+            }
+
             const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`
+                    "Authorization": `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
-                    model: "llama3-8b-8192",
+                    model: "llama-3.1-8b-instant",
                     messages: [
                         {
                             role: "system",
-                            content: "You are a campus security recovery assistant. Return ONLY a comma-separated list of item IDs that match the semantic description. No markdown, no prose."
+                            content: `You are a campus lost-and-found search assistant. Given a user search query and a list of items, rank the items by how likely they match the query. Consider semantic similarity, not just exact keyword matches. For example, "jacket" should match "hoodie" or "coat" with moderate confidence.
+
+Return ONLY a valid JSON array of objects with "id" and "confidence" (0.0 to 1.0) fields. Only include items with confidence >= 0.2. Sort by confidence descending. No markdown, no prose, no explanation — just the JSON array.
+
+Example output: [{"id":"ex-001","confidence":0.95},{"id":"ex-003","confidence":0.6}]
+
+If nothing matches at all, return: []`
                         },
                         {
                             role: "user",
-                            content: `Query: "${aiQuery}". Items: ${JSON.stringify(candidateItems.map(i => ({ id: i.id, title: i.title, desc: i.description })))}`
+                            content: `Search query: "${searchQuery}"
+
+Items to evaluate:
+${JSON.stringify(itemSummaries)}`
                         }
                     ],
-                    temperature: 0.1
+                    temperature: 0.1,
+                    max_tokens: 1024,
                 })
             });
+
+            if (!response.ok) {
+                const errBody = await response.json().catch(() => null);
+                const errMsg = errBody?.error?.message || `HTTP ${response.status}`;
+                throw new Error(`Groq API: ${errMsg}`);
+            }
+
             const data = await response.json();
-            const content = data.choices[0].message.content;
-            if (content.toLowerCase().includes('none')) {
-                setAiFilteredIds([]);
+            const content = data.choices?.[0]?.message?.content || '[]';
+
+            // Parse the response — handle potential formatting issues
+            let parsed;
+            try {
+                // Try to extract JSON from the response (handle markdown code blocks)
+                const jsonMatch = content.match(/\[[\s\S]*\]/);
+                parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content);
+            } catch (parseErr) {
+                console.warn('AI response parse error:', content);
+                // Fallback: try to extract IDs from comma-separated text
+                if (content.toLowerCase().includes('none') || content.trim() === '[]') {
+                    parsed = [];
+                } else {
+                    parsed = [];
+                }
+            }
+
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                // Sort by confidence descending and extract IDs
+                const sorted = parsed
+                    .filter(item => item.confidence >= 0.2)
+                    .sort((a, b) => (b.confidence || 0) - (a.confidence || 0));
+                setAiRankedIds(sorted.map(item => item.id));
             } else {
-                setAiFilteredIds(content.split(',').map(s => s.trim()));
+                setAiRankedIds([]);
             }
         } catch (e) {
-            console.error("AI Search Failed", e);
+            console.error("AI Search Failed:", e);
+            setAiError(`AI search error: ${e.message}`);
+            setAiRankedIds(null); // Fall back to showing all
         } finally {
             setAiSearching(false);
+        }
+    };
+
+    const handleSearchKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleAiSearch();
+        }
+    };
+
+    const handleSearchChange = (e) => {
+        const val = e.target.value;
+        setSearchTerm(val);
+        if (!val.trim()) {
+            setAiRankedIds(null);
+            setAiError(null);
         }
     };
 
     const handleSendInquiry = async () => {
         if (!inquiryMessage.trim()) return alert("Detail Required: Please provide info for verification.");
         setSendingInquiry(true);
-        // Simulate protocol synchronization
         await new Promise(r => setTimeout(r, 1500));
         alert(`Claim Protocol Synchronized. Verification request sent for "${inquiryItem.title}".`);
         setSendingInquiry(false);
@@ -142,18 +222,27 @@ const Registry = () => {
         setInquiryMessage('');
     };
 
+    const userSchool = MISSOURI_SCHOOLS.find(s => s.id === state.user.schoolId) || MISSOURI_SCHOOLS[0];
+
+    // Build filtered items list
     let filteredItems = state.items.filter(item => {
-        const isSameSchool = item.schoolId === state.user.schoolId;
+        const isSameSchool = item.schoolId === state.user.schoolId ||
+            item.schoolId === 'parkway-west' || !item.schoolId;
         const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
-
-        if (aiFilteredIds !== null) {
-            return isSameSchool && matchesCategory && aiFilteredIds.includes(item.id);
-        }
-
-        const matchesSearch = (item.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (item.location_name || item.location || '').toLowerCase().includes(searchTerm.toLowerCase());
-        return isSameSchool && matchesSearch && matchesCategory;
+        return isSameSchool && matchesCategory;
     });
+
+    // Apply AI ranking if active
+    if (aiRankedIds !== null) {
+        const rankedSet = new Set(aiRankedIds);
+        filteredItems = filteredItems.filter(item => rankedSet.has(item.id));
+        // Sort by the AI ranking order
+        filteredItems.sort((a, b) => {
+            const aIdx = aiRankedIds.indexOf(a.id);
+            const bIdx = aiRankedIds.indexOf(b.id);
+            return aIdx - bIdx;
+        });
+    }
 
     if (filterStatus !== 'All') {
         filteredItems = filteredItems.filter(i => i.type === filterStatus);
@@ -176,10 +265,10 @@ const Registry = () => {
                             animate={{ opacity: 1, x: 0 }}
                             className="badge"
                         >
-                            Retrace MO: Active Network
+                            RetraceWest: Active Network
                         </motion.div>
                         <h1>Campus Recovery Inventory</h1>
-                        <p>Viewing verified reports within your professional academic radius.</p>
+                        <p>AI-powered search across verified campus reports. Type a description and press Enter.</p>
                     </div>
 
                     <div className="reg-controls glass">
@@ -187,22 +276,21 @@ const Registry = () => {
                             <Search size={18} />
                             <input
                                 type="text"
-                                placeholder="Filter by keyword or location..."
+                                placeholder="Describe your lost item... (e.g. 'blue jacket' or 'calculator')"
                                 value={searchTerm}
-                                onChange={(e) => {
-                                    setSearchTerm(e.target.value);
-                                    if (!e.target.value) setAiFilteredIds(null);
-                                }}
+                                onChange={handleSearchChange}
+                                onKeyDown={handleSearchKeyDown}
                             />
                         </div>
 
                         <div className="reg-actions-v5">
                             <button
-                                className={`ai-search-btn-v5 ${showAiInput ? 'active' : ''}`}
-                                onClick={() => setShowAiInput(!showAiInput)}
+                                className={`ai-search-btn-v5 ${aiSearching ? 'active' : ''}`}
+                                onClick={() => handleAiSearch()}
+                                disabled={aiSearching || !searchTerm.trim()}
                             >
                                 <Sparkles size={18} />
-                                <span>Neural Search</span>
+                                <span>{aiSearching ? 'Searching...' : 'Neural Search'}</span>
                             </button>
 
                             <div className="filter-wrapper" style={{ position: 'relative' }}>
@@ -240,31 +328,30 @@ const Registry = () => {
                         </div>
                     </div>
 
-                    <AnimatePresence>
-                        {showAiInput && (
-                            <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                className="neural-search-box"
+                    {aiError && (
+                        <div style={{ marginTop: 12, padding: '10px 16px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 12, color: '#92400e', fontSize: '0.85rem', fontWeight: 600 }}>
+                            {aiError}
+                        </div>
+                    )}
+
+                    {aiRankedIds !== null && !aiSearching && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}
+                        >
+                            <span style={{ fontSize: '0.85rem', color: 'var(--gray-500)', fontWeight: 600 }}>
+                                <BrainCircuit size={14} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                                AI found {aiRankedIds.length} matching item{aiRankedIds.length !== 1 ? 's' : ''} for "{searchTerm}"
+                            </span>
+                            <button
+                                onClick={() => { setAiRankedIds(null); setSearchTerm(''); setAiError(null); }}
+                                style={{ background: 'none', border: '1px solid var(--gray-300)', borderRadius: 8, padding: '4px 10px', fontSize: '0.8rem', cursor: 'pointer', color: 'var(--gray-500)', fontWeight: 600 }}
                             >
-                                <div className="ns-inner glass">
-                                    {/* search works like magic thanks to groq */}
-                                    <div className="brain-ico"><BrainCircuit size={24} /></div>
-                                    <input
-                                        type="text"
-                                        placeholder="Describe your item in natural language..."
-                                        value={aiQuery}
-                                        onChange={e => setAiQuery(e.target.value)}
-                                        onKeyPress={e => e.key === 'Enter' && handleAiSearch()}
-                                    />
-                                    <button onClick={handleAiSearch} disabled={aiSearching}>
-                                        {aiSearching ? 'Analyzing Network...' : 'Execute Neural Logic'}
-                                    </button>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                                Clear
+                            </button>
+                        </motion.div>
+                    )}
 
                     <div className="cat-scroll-v5">
                         {categories.map(cat => (
@@ -291,13 +378,15 @@ const Registry = () => {
                                 transition={{ delay: idx * 0.05 }}
                                 className="item-card-v5 glass"
                             >
-                                <div className="card-image-v5">
-                                    {item.image ? <img src={item.image} alt={item.title} /> :
-                                        <div className="img-placeholder"><Camera size={40} /></div>}
-                                    <div className={`tag-v5 ${item.type}`}>{item.type.toUpperCase()}</div>
-                                </div>
+                                {item.image && (
+                                    <div className="card-image-v5">
+                                        <img src={item.image} alt={item.title} />
+                                        <div className={`tag-v5 ${item.type}`}>{item.type.toUpperCase()}</div>
+                                    </div>
+                                )}
 
                                 <div className="card-body-v5">
+                                    {!item.image && <div className={`tag-v5 ${item.type}`} style={{ position: 'relative', top: 0, right: 0, display: 'inline-block', marginBottom: '10px', width: 'fit-content' }}>{item.type.toUpperCase()}</div>}
                                     <div className="card-top-v5">
                                         <span className="cat-v5">{item.category}</span>
                                         <span className="dist-v5"><Navigation size={12} /> {getItemDistance(item.coords)}</span>
@@ -332,8 +421,8 @@ const Registry = () => {
                     {filteredItems.length === 0 && (
                         <div className="no-items glass animate-fade">
                             <PackageSearch size={48} opacity={0.2} />
-                            <h3>No Records Synchronized</h3>
-                            <p>Try adjusting your neural filters or search parameters for better results.</p>
+                            <h3>{aiRankedIds !== null ? 'No Matching Items Found' : 'No Records Available'}</h3>
+                            <p>{aiRankedIds !== null ? 'Try a different description or broaden your search terms.' : 'Try adjusting your filters or check back later.'}</p>
                         </div>
                     )}
                 </div>
@@ -385,45 +474,44 @@ const Registry = () => {
                 </AnimatePresence>
             </div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                .reg-v5 { padding-top: calc(var(--nav-h) + 20px); min-height: 100vh; background: #FAF9F6; }
                 .reg-header-v5 { margin-bottom: 40px; }
-                .header-txt .badge { display: inline-block; background: var(--color-primary-soft); color: var(--color-primary-deep); padding: 8px 16px; border-radius: 30px; font-size: 0.75rem; font-weight: 800; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
-                .header-txt h1 { font-size: 2.8rem; color: var(--color-dark); margin-bottom: 0.5rem; letter-spacing: -0.04em; }
-                .header-txt p { color: var(--text-dim); font-size: 1.1rem; }
+                .header-txt .badge { display: inline-block; background: var(--blue-light); color: var(--blue); padding: 8px 16px; border-radius: 30px; font-size: 0.75rem; font-weight: 800; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
+                .header-txt h1 { font-size: 2.8rem; color: var(--navy); margin-bottom: 0.5rem; letter-spacing: -0.04em; }
+                .header-txt p { color: var(--gray-600); font-size: 1.1rem; }
 
-                .reg-controls { margin-top: 30px; padding: 12px; border-radius: 20px; display: flex; align-items: center; gap: 20px; background: white; border: 1px solid var(--border-glass); box-shadow: var(--shadow-md); }
+                .reg-controls { margin-top: 30px; padding: 12px; border-radius: 20px; display: flex; align-items: center; gap: 20px; background: white; border: 1px solid var(--border-glass); box-shadow: 0 10px 30px -10px rgba(0,0,0,0.08); }
                 .search-bar { flex: 1; display: flex; align-items: center; gap: 12px; padding-left: 20px; border-right: 1px solid var(--border-glass); }
                 .search-bar input { border: none; background: transparent; padding: 12px 0; font-size: 1rem; width: 100%; outline: none; }
                 
                 .reg-actions-v5 { display: flex; gap: 10px; padding-right: 8px; }
                 .ai-search-btn-v5, .filter-trigger-v5 { 
                     display: flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 12px; 
-                    font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; border: 1px solid var(--border-glass);
+                    font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid var(--border-glass);
                 }
-                .ai-search-btn-v5 { background: #F5F3FF; color: #7C3AED; }
-                .ai-search-btn-v5.active { background: #7C3AED; color: white; }
+                .ai-search-btn-v5 { background: #EEF2FF; color: #4F46E5; }
+                .ai-search-btn-v5:hover:not(:disabled) { background: #E0E7FF; transform: translateY(-2px); }
+                .ai-search-btn-v5.active { background: #4F46E5; color: white; box-shadow: 0 4px 12px rgba(79,70,229,0.3); }
+                .ai-search-btn-v5:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
                 .filter-trigger-v5 { background: white; color: var(--text-dim); }
+                .filter-trigger-v5:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
 
-                .filter-dropdown { position: absolute; top: calc(100% + 12px); right: 0; width: 240px; padding: 20px; border-radius: 20px; z-index: 100; display: flex; flex-direction: column; gap: 15px; box-shadow: var(--shadow-xl); }
-                .f-sec label { display: block; font-size: 0.75rem; font-weight: 800; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; }
-                .f-sec select { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--border-glass); background: #F8FAFC; outline: none; }
-
-                .neural-search-box { margin-top: 20px; }
-                .ns-inner { padding: 20px; border-radius: 20px; display: flex; align-items: center; gap: 20px; border: 2px solid #DDD6FE; background: #F5F3FF; }
-                .brain-ico { color: #8B5CF6; }
-                .ns-inner input { flex: 1; border: none; background: transparent; font-size: 1.1rem; outline: none; font-weight: 500; }
-                .ns-inner button { background: #8B5CF6; color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-                .ns-inner button:hover { background: #7C3AED; transform: translateY(-2px); }
+                .filter-dropdown { position: absolute; top: calc(100% + 12px); right: 0; width: 240px; padding: 20px; border-radius: 20px; z-index: 100; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 20px 40px -10px rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.05); background: white; }
+                .f-sec label { display: block; font-size: 0.75rem; font-weight: 800; color: var(--navy); text-transform: uppercase; margin-bottom: 8px; }
+                .f-sec select { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--gray-200); background: #F8FAFC; outline: none; transition: border 0.3s; }
+                .f-sec select:focus { border-color: var(--blue); }
 
                 .cat-scroll-v5 { display: flex; gap: 8px; margin-top: 25px; overflow-x: auto; padding-bottom: 5px; }
                 .cat-scroll-v5::-webkit-scrollbar { display: none; }
-                .cat-btn-v5 { background: white; border: 1px solid var(--border-glass); color: var(--text-dim); padding: 10px 20px; border-radius: 30px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: 0.2s; white-space: nowrap; }
-                .cat-btn-v5:hover { border-color: var(--color-primary); color: var(--color-primary); }
-                .cat-btn-v5.active { background: var(--color-dark); color: white; border-color: var(--color-dark); }
+                .cat-btn-v5 { background: white; border: 1px solid var(--border-glass); color: var(--navy); padding: 10px 20px; border-radius: 30px; cursor: pointer; font-weight: 700; font-size: 0.85rem; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap; }
+                .cat-btn-v5:hover { border-color: var(--blue); color: var(--blue); transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+                .cat-btn-v5.active { background: var(--blue); color: white; border-color: var(--blue); box-shadow: 0 6px 14px rgba(59,130,246,0.3); }
 
                 .item-grid-v5 { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 30px; margin-top: 40px; }
-                .item-card-v5 { background: white; border-radius: 24px; border: 1px solid var(--border-glass); overflow: hidden; display: flex; flex-direction: column; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-                .item-card-v5:hover { transform: translateY(-8px); box-shadow: var(--shadow-xl); border-color: var(--color-primary-soft); }
+                .item-card-v5 { background: white; border-radius: 24px; border: 1px solid var(--gray-200); overflow: hidden; display: flex; flex-direction: column; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+                .item-card-v5:hover { transform: translateY(-10px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); border-color: var(--blue-light); }
                 
                 .card-image-v5 { height: 200px; background: #F8FAFC; position: relative; }
                 .card-image-v5 img { width: 100%; height: 100%; object-fit: cover; }
@@ -447,6 +535,10 @@ const Registry = () => {
                 .inquiry-trigger-v5:hover { background: var(--color-primary-soft); transform: scale(1.05); }
                 .navigate-trigger-v5 { height: 44px; padding: 0 16px; border-radius: 12px; background: var(--color-dark); color: white; border: none; font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: 0.2s; }
                 .navigate-trigger-v5:hover { background: var(--color-primary); transform: translateX(2px); }
+
+                .no-items { text-align: center; padding: 60px 20px; grid-column: 1 / -1; }
+                .no-items h3 { margin-top: 16px; font-size: 1.2rem; color: var(--navy); }
+                .no-items p { color: var(--gray-500); margin-top: 8px; }
 
                 .modal-overlay-v5 { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 20px; }
                 .modal-content-v5 { width: 100%; max-width: 500px; background: white; padding: 35px; border-radius: 30px; border: 1px solid var(--border-glass); box-shadow: var(--shadow-xl); }
@@ -473,7 +565,7 @@ const Registry = () => {
                   .item-grid-v5 { grid-template-columns: 1fr; }
                   .header-txt h1 { font-size: 2.2rem; }
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 };

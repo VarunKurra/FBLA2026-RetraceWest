@@ -1,326 +1,406 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { GraduationCap, MapPin, Search, ShieldCheck, Heart, Map as MapIcon, ChevronRight, Globe, Layers, ArrowRight } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Search, MapPin, Shield, CheckCircle, AlertTriangle, BookOpen, Clock } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
+// Import the user's specific image
+import heroBgImage from '../assets/Lost-and-Found-Folwell-Elementary.jpg';
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+};
+
+const fadeStagger = {
+  hidden: { opacity: 0 },
+  visible: { 
+    opacity: 1, 
+    transition: { staggerChildren: 0.1 } 
+  }
+};
+
 const Home = () => {
-    const { state } = useApp();
-    const navigate = useNavigate();
+  const { state } = useApp();
 
-    // Redirect if already logged in (useLayoutEffect for faster trigger)
-    React.useLayoutEffect(() => {
-        if (state.user) navigate('/dashboard');
-    }, [state.user, navigate]);
+  return (
+    <div className="home-modern-auth">
+      
+      {/* ── SPLIT SHADCN HERO ── */}
+      <section className="split-hero">
+        <div className="container">
+          <motion.div className="sh-grid" initial="hidden" animate="visible" variants={fadeStagger}>
+            
+            {/* Left Content */}
+            <div className="sh-text">
+               <motion.div variants={fadeUp} className="hero-badge">OFFICIAL PARKWAY WEST APP</motion.div>
+               <motion.h1 variants={fadeUp} className="hero-h1">
+                 Lost it at<br/>
+                 <span className="highlight-red">West High?</span><br/>
+                 Find it here.
+               </motion.h1>
+               <motion.p variants={fadeUp} className="hero-lead">
+                 The cardboard box is gone. RetraceWest is the official, real-time digital lost & found designed for the massive Parkway West High School campus.
+               </motion.p>
+               
+               <motion.div variants={fadeUp} className="hero-actions">
+                 {state.user ? (
+                   <>
+                     <Link to="/registry" className="btn-modern btn-primary">Live Registry <ArrowRight size={18} /></Link>
+                     <Link to="/report" className="btn-modern btn-outline">Report Item</Link>
+                   </>
+                 ) : (
+                   <>
+                     <Link to="/auth" className="btn-modern btn-primary">Sign in with Parkway <ArrowRight size={18} /></Link>
+                     <Link to="/about" className="btn-modern btn-outline">Learn More</Link>
+                   </>
+                 )}
+               </motion.div>
+            </div>
 
-    return (
-        <div className="home-v5">
+            {/* Right Image (Shadcn Wrapped) */}
+            <motion.div variants={fadeUp} className="sh-image-wrapper">
+               <div className="sh-image-card">
+                  <div className="sh-browser-bar">
+                    <span className="sh-dot red"></span>
+                    <span className="sh-dot yellow"></span>
+                    <span className="sh-dot green"></span>
+                  </div>
+                  <img src={heroBgImage} alt="Lost and Found Box" className="sh-img" />
+               </div>
+            </motion.div>
 
-            {/* Hero Section - Clean & Inviting */}
-            <section className="hero-v5">
-                <div className="v5-pattern" />
-                <div className="container v5-hero-inner">
-                    <div className="v5-hero-text">
-                        <motion.div
-                            initial={{ opacity: 0, x: -50 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.8, ease: "easeOut" }}
-                        >
-                            <div className="badge-v5">
-                                <span className="live-tag">NEW</span>
-                                <span>Advanced Campus Recovery Network</span>
-                            </div>
+          </motion.div>
+        </div>
+      </section>
 
-                            <h1 className="v5-title">
-                                Reclaim what <br />
-                                <span>matters most.</span>
-                            </h1>
+      {/* ── QUICK LINKS ── */}
+      <section className="ql-section">
+        <div className="container">
+          <motion.div 
+             className="ql-grid"
+             initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={fadeStagger}
+          >
+            <motion.div variants={fadeUp}>
+              <Link to="/registry" className="ql-card">
+                <div className="ql-icon blue"><Search size={24}/></div>
+                <h3>Live Feed</h3>
+                <p>Scroll the active campus registry.</p>
+              </Link>
+            </motion.div>
 
-                            <p className="v5-desc">
-                                The high-precision recovery network for Missouri's academic community. Protect your valuables and help fellow students with school-verified security.
-                            </p>
+            <motion.div variants={fadeUp}>
+              <Link to="/report" className="ql-card">
+                <div className="ql-icon red"><MapPin size={24}/></div>
+                <h3>Drop a Pin</h3>
+                <p>Log exact GPS coordinates on campus.</p>
+              </Link>
+            </motion.div>
 
-                            <div className="v5-cta">
-                                <Link to="/auth" className="btn-primary-v5">
-                                    Join Your Campus <ChevronRight size={20} />
-                                </Link>
-                                <Link to="/registry" className="btn-secondary-v5">
-                                    View Live Listings
-                                </Link>
-                            </div>
-                        </motion.div>
-                    </div>
+            <motion.div variants={fadeUp}>
+              <Link to="/about" className="ql-card">
+                <div className="ql-icon dark"><Shield size={24}/></div>
+                <h3>Verified Secure</h3>
+                <p>Only strictly via Parkway emails.</p>
+              </Link>
+            </motion.div>
 
+            <motion.div variants={fadeUp}>
+               <Link to="/leaderboard" className="ql-card">
+                  <div className="ql-icon green"><CheckCircle size={24}/></div>
+                  <h3>Good Samaritan</h3>
+                  <p>Earn credit for returning items.</p>
+               </Link>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
 
-                    <div className="v5-hero-media">
-                        <motion.div
-                            className="app-preview-v5 glass"
-                            initial={{ opacity: 0, scale: 0.8, rotate: 0 }}
-                            animate={{ opacity: 1, scale: 1, rotate: 3 }}
-                            transition={{ duration: 1, delay: 0.2 }}
-                        >
-                            <div className="p-header">
-                                <div className="p-dots"><span></span><span></span><span></span></div>
-                                <div className="p-url">retrace-mo-portal.edu</div>
-                            </div>
-                            <div className="p-content">
-                                <div className="p-campus-card">
-                                    <MapIcon size={24} color="white" />
-                                    <div className="txt">
-                                        <strong>Active Campus Monitor</strong>
-                                        <span>24 active reports at your school</span>
-                                    </div>
-                                </div>
-                                <div className="p-list">
-                                    <div className="p-item"><span></span> Lost Airpods (Library)</div>
-                                    <div className="p-item"><span></span> HydroFlask (Cafeteria)</div>
-                                    <div className="p-item"><span></span> Student ID (Main Office)</div>
-                                </div>
-                            </div>
-                        </motion.div>
-                        <motion.div
-                            className="v5-floating-badge"
-                            initial={{ y: 20, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            transition={{ delay: 1, duration: 0.5 }}
-                        >
-                            <div className="ico"><ShieldCheck size={20} /></div>
-                            <span>Verified Network</span>
-                        </motion.div>
-                    </div>
+      {/* ── MASSIVE CONTENT (Authentic Length) ── */}
+      <section className="section-pad" style={{ background: 'var(--white)' }}>
+        <div className="container">
+          <motion.div 
+             className="content-dual-grid"
+             initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeStagger}
+          >
+            
+            {/* LEFT COLUMN: GUIDELINES & INSTITUTIONAL TEXT */}
+            <motion.div variants={fadeUp} className="cdg-left">
+              <h2 className="title-shadcn border-accent-blue">How the System Works</h2>
+              <div className="glass-panel text-content">
+                <p>
+                  With thousands of active students and multiple massive facilities, Parkway West's traditional cardboard-box system was proving highly inefficient. Items were mixed up, stolen, or never found. 
+                </p>
+                <div className="feature-rows mt-24">
+                   <div className="f-row">
+                      <div className="fr-icon"><Shield size={20}/></div>
+                      <div className="fr-text">
+                         <h4>Secure `@parkwayschools.net` Authentication</h4>
+                         <p>Only verified students can search and claim, preventing external interference.</p>
+                      </div>
+                   </div>
+                   <div className="f-row">
+                      <div className="fr-icon"><MapPin size={20}/></div>
+                      <div className="fr-text">
+                         <h4>Interactive Campus Mapping</h4>
+                         <p>Uses our spatial mapping integrations to drop exact 3D pinpoint locations.</p>
+                      </div>
+                   </div>
+                   <div className="f-row">
+                      <div className="fr-icon"><CheckCircle size={20}/></div>
+                      <div className="fr-text">
+                         <h4>Main Office Verification</h4>
+                         <p>Valuables are secured at the front desk and handed over only upon digital claim approval.</p>
+                      </div>
+                   </div>
                 </div>
-            </section>
+              </div>
 
-            {/* Trust & Community Section */}
-            <section className="v5-trust container">
-                <motion.div
-                    className="trust-card glass"
-                    initial={{ y: 40, opacity: 0 }}
-                    whileInView={{ y: 0, opacity: 1 }}
-                    viewport={{ once: true }}
-                >
-                    <div className="stats">
-                        <div className="s-block">
-                            <strong>500+</strong>
-                            <span>Verified Schools</span>
-                        </div>
-                        <div className="s-block">
-                            <strong>4.2k</strong>
-                            <span>Items Recovered</span>
-                        </div>
-                        <div className="s-block">
-                            <strong>99.9%</strong>
-                            <span>Precision Rate</span>
-                        </div>
+              <div className="blue-promo-block shadow-hover">
+                <h3 style={{ color: 'white', marginBottom: '12px' }}>The Good Samaritan Initiative</h3>
+                <p style={{ color: 'var(--navy-light)', marginBottom: '24px' }}>
+                  A core institutional directive. Earn points by logging and handing in lost properties. Top students are placed on the leaderboard and receive special recognition.
+                </p>
+                <Link to="/leaderboard" className="btn-modern btn-outline" style={{ background: 'white', color: 'var(--navy)', border: 'none' }}>View Rankings</Link>
+              </div>
+            </motion.div>
+
+            {/* RIGHT COLUMN: SIDEBAR DATA */}
+            <motion.aside variants={fadeUp} className="cdg-right">
+              
+              {/* ALERTS WIDGET */}
+              <div className="sidebar-glass-widget shadow-hover">
+                 <div className="sgw-header"><BellIcon /> Campus Alerts</div>
+                 <div className="sgw-body">
+                    <ul className="alert-list-modern">
+                       <li><AlertTriangle size={16} color="var(--red)"/> Multiple Student IDs recovered near C-Hall.</li>
+                       <li><BookOpen size={16} color="var(--blue)"/> Library lost & found has been fully digitized.</li>
+                    </ul>
+                 </div>
+              </div>
+
+              {/* LIVE FEED WIDGET */}
+              <div className="sidebar-glass-widget shadow-hover mt-32">
+                 <div className="sgw-header"><ClockIcon /> Recent Live Activity</div>
+                 <div className="sgw-body stretch">
+                    
+                    <div className="feed-item-modern outline">
+                       <div className="fi-top">
+                          <span className="badge-found">FOUND</span>
+                          <span className="fi-time">10 mins ago</span>
+                       </div>
+                       <h4>AirPods Pro (Left)</h4>
+                       <span className="fi-loc"><MapPin size={14}/> Main Library</span>
                     </div>
-                </motion.div>
-            </section>
 
-            {/* Features - Student Centric */}
-            <section className="v5-features container">
-                <div className="v5-sec-head">
-                    <div className="mini-badge">FEATURES</div>
-                    <h2>Engineered for Integrity</h2>
-                    <p>We've combined geospatial precision with institutional security to create the safest campus network in Missouri.</p>
-                </div>
-
-                <div className="v5-feat-grid">
-                    <motion.div
-                        className="v5-feat-box glass"
-                        whileHover={{ y: -10 }}
-                    >
-                        <div className="icon b1"><GraduationCap size={32} /></div>
-                        <h3>Verified Academic IDs</h3>
-                        <p>Access is exclusive to verified students and faculty, ensuring all interactions are accountable and safe.</p>
-                    </motion.div>
-                    <motion.div
-                        className="v5-feat-box glass"
-                        whileHover={{ y: -10 }}
-                    >
-                        <div className="icon b2"><MapPin size={32} /></div>
-                        <h3>Smart Campus Mapping</h3>
-                        <p>Our proprietary spatial boundaries automatically filter reports to your specific campus area.</p>
-                    </motion.div>
-                    <motion.div
-                        className="v5-feat-box glass"
-                        whileHover={{ y: -10 }}
-                    >
-                        <div className="icon b3"><Heart size={32} /></div>
-                        <h3>Community Rewards</h3>
-                        <p>Built-in integrity system that rewards students for returning valuables to their rightful owners.</p>
-                    </motion.div>
-                </div>
-            </section>
-
-            <section className="v5-cta-final container">
-                <motion.div
-                    className="cta-card-v5 glass"
-                    whileHover={{ scale: 1.01 }}
-                >
-                    <h2>Ready to secure your campus?</h2>
-                    <p>Join thousands of Missouri students today and never lose track of what matters most.</p>
-                    <Link to="/auth" className="btn-primary-v5">Create Your Profile <ArrowRight size={20} /></Link>
-                </motion.div>
-            </section>
-
-            <footer className="v5-footer container">
-                <div className="f-inner">
-                    <div className="f-left">
-                        <div className="logo">Retrace<span>MO</span></div>
-                        <p>The Missouri Student Recovery Network.</p>
+                    <div className="feed-item-modern">
+                       <div className="fi-top">
+                          <span className="badge-lost">LOST</span>
+                          <span className="fi-time">1 hr ago</span>
+                       </div>
+                       <h4>TI-84 Graphing Calculator</h4>
+                       <span className="fi-loc"><MapPin size={14}/> Room 311</span>
                     </div>
-                    <div className="f-right">
-                        <a href="#">Privacy</a>
-                        <a href="#">Terms</a>
-                        <a href="#">Contact Support</a>
-                    </div>
-                </div>
-            </footer>
 
-            <style>{`
-        .home-v5 { background: #FFFFFF; color: var(--text-main); overflow-x: hidden; }
+                    <div className="feed-item-modern outline">
+                       <div className="fi-top">
+                          <span className="badge-returned">RETURNED</span>
+                          <span className="fi-time">3 hrs ago</span>
+                       </div>
+                       <h4>Black Hydroflask</h4>
+                       <span className="fi-loc"><CheckCircle size={14}/> Verified by Admin</span>
+                    </div>
+
+                 </div>
+                 <Link to="/registry" className="sgw-footer">Explore Registry &rarr;</Link>
+              </div>
+
+            </motion.aside>
+
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── HEAVY FOOTER CTA (Authentic School Style) ── */}
+      <section className="footer-cta bg-navy">
+        <motion.div 
+           className="container focus-container"
+           initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
+        >
+          <h2>Longhorn Pride in Action</h2>
+          <p>RetraceWest relies on the honesty and integrity of our student body. Sign in today to become part of the solution.</p>
+          <Link to={state.user ? '/registry' : '/auth'} className="btn-modern btn-outline" style={{ background: 'transparent', color: 'white', borderColor: 'rgba(255,255,255,0.4)', fontSize: '1.15rem', padding: '16px 36px' }}>
+            {state.user ? 'Enter Dashboard' : 'Sign in via @parkwayschools.net'}
+          </Link>
+        </motion.div>
+      </section>
+
+      <style>{`
+        .home-modern-auth {
+           min-height: 100vh;
+           background: var(--off-white);
+           padding-top: var(--nav-h); /* Compensate for massive 100px tall navbar */
+        }
+
+        /* ── SPLIT SHADCN HERO ── */
+        .split-hero {
+           padding: 100px 0 120px;
+           background: var(--off-white);
+           overflow: hidden;
+        }
+        .sh-grid {
+           display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
+        }
+        .sh-text { max-width: 600px; }
         
-        .hero-v5 { padding: 180px 0 120px; position: relative; display: flex; align-items: center; background: #F8FAFC; border-bottom: 1px solid #F1F5F9; }
-        .v5-pattern { position: absolute; inset: 0; background-image: radial-gradient(#E2E8F0 1px, transparent 1px); background-size: 40px 40px; opacity: 0.5; }
-
-        .v5-hero-inner { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 60px; align-items: center; position: relative; z-index: 10; }
+        .hero-badge {
+           display: inline-block; padding: 6px 14px; background: rgba(0, 72, 130, 0.1); color: var(--navy);
+           border-radius: 20px; font-size: 0.85rem; font-weight: 800; letter-spacing: 0.15em; margin-bottom: 24px;
+        }
+        .hero-h1 {
+           font-size: clamp(3rem, 5vw, 4.2rem); font-family: var(--font-heading); font-weight: 900;
+           line-height: 1.1; letter-spacing: -0.04em; margin-bottom: 24px; color: var(--navy);
+        }
+        .highlight-red { display: inline-block; color: var(--red); margin: 4px 0; }
+        .hero-lead {
+           font-size: 1.25rem; color: var(--gray-600); line-height: 1.6; margin-bottom: 40px;
+        }
         
-        .badge-v5 { 
-          display: inline-flex; align-items: center; gap: 10px; background: white; padding: 6px 16px; border-radius: 40px;
-          font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--color-primary);
-          box-shadow: var(--shadow-sm); margin-bottom: 2rem; border: 1px solid #E2E8F0;
+        .hero-actions { display: flex; gap: 16px; }
+        
+        /* Shadcn Right Image Box */
+        .sh-image-wrapper { position: relative; }
+        .sh-image-wrapper::before {
+           content: ''; position: absolute; inset: -20px; background: linear-gradient(135deg, var(--blue-light) 0%, transparent 100%);
+           border-radius: var(--r-2xl); z-index: 0; transform: rotate(-3deg); opacity: 0.6;
         }
-        .live-tag { background: var(--color-primary); color: white; padding: 2px 8px; border-radius: 4px; font-size: 9px; }
-
-        .v5-title { font-size: 4.5rem; line-height: 1.1; margin-bottom: 2rem; color: var(--color-dark); letter-spacing: -0.04em; }
-        .v5-title span { color: var(--color-primary); }
-
-        .v5-desc { font-size: 1.25rem; color: var(--text-dim); line-height: 1.7; max-width: 560px; margin-bottom: 3rem; }
-
-        .v5-cta { display: flex; gap: 1.5rem; align-items: center; }
-        .btn-primary-v5 { 
-          background: var(--gradient-main); color: white; padding: 1.2rem 2.5rem; border-radius: var(--radius-lg);
-          font-family: var(--font-heading); font-weight: 700; text-decoration: none;
-          display: flex; align-items: center; gap: 0.75rem; transition: all 0.3s;
-          box-shadow: var(--shadow-primary);
+        .sh-image-card {
+           position: relative; z-index: 1;
+           background: white; border: 1px solid var(--gray-200); border-radius: var(--r-xl);
+           box-shadow: var(--shadow-xl); overflow: hidden;
         }
-        .btn-primary-v5:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 15px 35px -5px rgba(37, 99, 235, 0.4); }
-
-        .btn-secondary-v5 { color: var(--text-dim); font-weight: 600; text-decoration: none; transition: all 0.2s; }
-        .btn-secondary-v5:hover { color: var(--color-dark); }
-
-        .v5-hero-media { position: relative; display: flex; justify-content: center; }
-        .app-preview-v5 { width: 380px; height: 320px; border-radius: 20px; overflow: hidden; box-shadow: var(--shadow-xl); transform: rotate(3deg); }
-        .p-header { background: #1E293B; padding: 12px; display: flex; align-items: center; gap: 15px; }
-        .p-dots { display: flex; gap: 6px; }
-        .p-dots span { width: 8px; height: 8px; background: rgba(255,255,255,0.2); border-radius: 50%; }
-        .p-url { color: rgba(255,255,255,0.4); font-size: 10px; font-family: var(--font-mono); }
-        .p-content { padding: 25px; background: white; height: 100%; }
-        .p-campus-card { background: var(--color-primary); color: white; padding: 15px; border-radius: 12px; display: flex; gap: 15px; align-items: center; margin-bottom: 20px; }
-        .p-campus-card .txt { display: flex; flex-direction: column; }
-        .p-campus-card .txt strong { font-size: 0.9rem; }
-        .p-campus-card .txt span { font-size: 0.75rem; opacity: 0.8; }
-        .p-list { display: flex; flex-direction: column; gap: 12px; }
-        .p-item { font-size: 0.85rem; color: var(--color-dark); display: flex; align-items: center; gap: 10px; font-weight: 500; }
-        .p-item span { width: 6px; height: 6px; background: var(--color-primary); border-radius: 50%; }
-
-        .v5-floating-badge { 
-          position: absolute; bottom: 20px; right: 40px; background: white; padding: 15px 25px; 
-          border-radius: 15px; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-xl);
-          transform: rotate(-5deg); z-index: 20;
+        .sh-browser-bar { 
+           height: 40px; background: var(--gray-100); border-bottom: 1px solid var(--gray-200);
+           display: flex; align-items: center; padding: 0 16px; gap: 8px;
         }
-        .v5-floating-badge .ico { color: var(--color-secondary); }
-        .v5-floating-badge span { font-weight: 700; font-size: 0.9rem; color: var(--color-dark); }
+        .sh-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .sh-dot.red { background: #ff5f56; } .sh-dot.yellow { background: #ffbd2e; } .sh-dot.green { background: #27c93f; }
+        .sh-img { width: 100%; height: auto; display: block; }
 
-        .v5-trust { margin-top: -60px; position: relative; z-index: 30; }
-        .trust-card { padding: 40px; border-radius: 30px; background: white; }
-        .stats { display: flex; justify-content: space-around; text-align: center; }
-        .s-block strong { display: block; font-size: 2.5rem; color: var(--color-primary); margin-bottom: 0.25rem; }
-        .s-block span { color: var(--text-dim); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; font-weight: 700; }
-
-        .v5-features { padding: 120px 0; }
-        .v5-sec-head { text-align: center; margin-bottom: 6rem; }
-        .v5-sec-head h2 { font-size: 3rem; margin-bottom: 1.5rem; }
-        .v5-sec-head p { font-size: 1.2rem; color: var(--text-dim); max-width: 700px; margin: 0 auto; }
-
-        .v5-feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
-        .v5-feat-box { padding: 3rem; border-radius: var(--radius-xl); transition: all 0.3s; background: #F8FAFC; border: none; }
-        .v5-feat-box:hover { transform: translateY(-10px); background: white; box-shadow: var(--shadow-xl); }
-        .v5-feat-box .icon { width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; margin-bottom: 2rem; color: white; }
-        .icon.b1 { background: linear-gradient(135deg, #6366F1, #818CF8); }
-        .icon.b2 { background: linear-gradient(135deg, #2563EB, #60A5FA); }
-        .icon.b3 { background: linear-gradient(135deg, #10B981, #34D399); }
-        .v5-feat-box h3 { font-size: 1.5rem; margin-bottom: 1rem; color: var(--color-dark); }
-        .v5-feat-box p { color: var(--text-dim); line-height: 1.6; }
-
-        .v5-cta-final { padding: 100px 0; }
-        .cta-card-v5 { 
-          background: var(--color-dark); border-radius: 40px; padding: 80px 40px; text-align: center; color: white;
-          background-image: radial-gradient(circle at 0% 0%, rgba(37, 99, 235, 0.3) 0%, transparent 50%),
-                            radial-gradient(circle at 100% 100%, rgba(99, 102, 241, 0.3) 0%, transparent 50%);
-          box-shadow: var(--shadow-xl);
+        @media (max-width: 960px) {
+           .sh-grid { grid-template-columns: 1fr; text-align: center; }
+           .sh-text { margin: 0 auto; max-width: 100%; }
+           .hero-actions { justify-content: center; }
         }
-
-        .cta-card-v5 h2 { font-size: 3.5rem; margin-bottom: 1.5rem; }
-        .cta-card-v5 p { font-size: 1.25rem; opacity: 0.8; margin-bottom: 3.5rem; max-width: 600px; margin-left: auto; margin-right: auto; }
-
-        .v5-footer { padding: 80px 0; border-top: 1px solid #F1F5F9; }
-        .f-inner { display: flex; justify-content: space-between; align-items: center; }
-        .logo { font-size: 1.5rem; font-weight: 800; color: var(--color-dark); }
-        .logo span { color: var(--color-primary); }
-        .f-left p { color: var(--text-dim); font-size: 0.9rem; margin-top: 0.5rem; }
-        .f-right { display: flex; gap: 2rem; }
-        .f-right a { text-decoration: none; color: var(--text-dim); font-size: 0.95rem; font-weight: 500; }
-        .f-right a:hover { color: var(--color-primary); }
-
-        @media (max-width: 1024px) {
-           .v5-hero-inner { grid-template-columns: 1fr; text-align: center; }
-           .v5-title { font-size: 3rem; }
-           .v5-desc { margin: 0 auto 3rem; }
-           .v5-cta { justify-content: center; }
-           .v5-hero-media { display: none; }
-           .v5-feat-grid { grid-template-columns: 1fr 1fr; }
-           .stats { flex-direction: row; gap: 20px; }
-           .cta-card-v5 h2 { font-size: 2.5rem; }
+        
+        /* ── BUTTONS ── */
+        .btn-modern {
+           display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+           padding: 16px 32px; font-size: 1.1rem; font-weight: 700; border-radius: var(--r-md);
+           transition: all 0.2s; text-decoration: none;
         }
+        .btn-primary { background: var(--navy); color: white; box-shadow: 0 4px 12px rgba(0, 72, 130, 0.25); }
+        .btn-primary:hover { background: var(--blue); transform: translateY(-2px); }
+        .btn-outline { background: white; border: 2px solid var(--gray-300); color: var(--navy); }
+        .btn-outline:hover { background: var(--gray-50); border-color: var(--gray-400); }
 
-        @media (max-width: 768px) {
-           .hero-v5 { padding: 120px 0 80px; }
-           .v5-title { font-size: 2.4rem; }
-           .v5-desc { font-size: 1.05rem; }
-           .v5-cta { flex-direction: column; gap: 1rem; }
-           .btn-primary-v5 { width: 100%; justify-content: center; padding: 1rem 2rem; }
-           .v5-feat-grid { grid-template-columns: 1fr; gap: 20px; }
-           .v5-feat-box { padding: 2rem; }
-           .v5-features { padding: 60px 0; }
-           .v5-sec-head h2 { font-size: 2rem; }
-           .v5-sec-head p { font-size: 1rem; }
-           .v5-sec-head { margin-bottom: 3rem; }
-           .stats { flex-direction: column; gap: 24px; }
-           .trust-card { padding: 30px; border-radius: 20px; }
-           .s-block strong { font-size: 2rem; }
-           .cta-card-v5 { padding: 50px 24px; border-radius: 24px; }
-           .cta-card-v5 h2 { font-size: 2rem; }
-           .cta-card-v5 p { font-size: 1rem; margin-bottom: 2rem; }
-           .v5-cta-final { padding: 60px 0; }
-           .f-inner { flex-direction: column; gap: 1.5rem; text-align: center; }
-           .f-right { justify-content: center; }
-           .v5-footer { padding: 40px 0; }
+        /* ── QUICK LINKS ── */
+        .ql-section { margin-top: -60px; position: relative; z-index: 10; padding-bottom: 80px; }
+        .ql-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+        .ql-card {
+           display: flex; flex-direction: column; background: white;
+           border: 1px solid var(--gray-200); border-radius: var(--r-xl); padding: 32px 24px;
+           text-decoration: none; color: var(--navy); box-shadow: var(--shadow-sm);
+           transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s;
         }
+        .ql-card:hover { transform: translateY(-8px); box-shadow: var(--shadow-xl); border-color: var(--gray-300); }
+        .ql-icon {
+           width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;
+        }
+        .ql-icon.blue { background: var(--blue-light); color: var(--blue); } .ql-icon.red { background: var(--red-light); color: var(--red); }
+        .ql-icon.dark { background: var(--navy-light); color: var(--navy); } .ql-icon.green { background: #dcfce7; color: #16a34a; }
+        .ql-card h3 { font-size: 1.25rem; font-weight: 800; margin-bottom: 8px; }
+        .ql-card p { font-size: 0.95rem; color: var(--gray-600); margin: 0; line-height: 1.6; }
 
-        @media (max-width: 480px) {
-           .hero-v5 { padding: 100px 0 60px; }
-           .v5-title { font-size: 2rem; }
-           .badge-v5 { font-size: 9px; padding: 4px 10px; margin-bottom: 1.2rem; }
-           .v5-feat-box { padding: 1.5rem; border-radius: 20px; }
-           .v5-feat-box h3 { font-size: 1.2rem; }
-           .v5-feat-box .icon { width: 48px; height: 48px; border-radius: 12px; margin-bottom: 1rem; }
-           .cta-card-v5 h2 { font-size: 1.6rem; }
-           .trust-card { padding: 24px; }
+        @media (max-width: 960px) { .ql-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 600px) { .ql-grid { grid-template-columns: 1fr; } .ql-section { margin-top: -40px; } }
+
+        /* ── DUAL CONTENT (Long Layout) ── */
+        .content-dual-grid { display: grid; grid-template-columns: 1.2fr 340px; gap: 60px; padding-bottom: 40px; }
+        .title-shadcn { font-size: 2.2rem; font-weight: 800; color: var(--navy); margin-bottom: 24px; letter-spacing: -0.02em; }
+        .border-accent-blue { border-bottom: 5px solid var(--navy); padding-bottom: 12px; display: inline-block; }
+        
+        .glass-panel { background: white; border-radius: var(--r-xl); padding: 40px; border: 1px solid var(--gray-200); box-shadow: var(--shadow-sm); margin-bottom: 40px; }
+        .text-content p { font-size: 1.15rem; color: var(--gray-600); line-height: 1.8; margin-bottom: 24px; }
+        
+        .mt-24 { margin-top: 24px; }
+        .mt-32 { margin-top: 32px; }
+        .shadow-hover { transition: transform 0.2s, box-shadow 0.2s; }
+        
+        .feature-rows { display: flex; flex-direction: column; gap: 24px; }
+        .f-row { display: flex; gap: 20px; align-items: flex-start; }
+        .fr-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--off-white); color: var(--navy); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .fr-text h4 { font-size: 1.15rem; font-weight: 800; color: var(--navy); margin-bottom: 6px; }
+        .fr-text p { font-size: 1.05rem; color: var(--gray-600); line-height: 1.5; margin: 0; }
+        
+        .blue-promo-block {
+           background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);
+           padding: 40px; border-radius: var(--r-xl); color: white;
+           box-shadow: var(--shadow-md);
+        }
+        .blue-promo-block:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+
+        /* Sidebar Widgets */
+        .sidebar-glass-widget {
+           background: white; border: 1px solid var(--gray-200); border-radius: var(--r-lg);
+           overflow: hidden; box-shadow: var(--shadow-sm);
+        }
+        .sidebar-glass-widget:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+        .sgw-header {
+           background: var(--navy); padding: 16px 20px; font-weight: 800; font-size: 1.1rem;
+           color: white; border-bottom: 1px solid var(--navy-mid); display: flex; align-items: center; gap: 10px;
+        }
+        .sgw-body { padding: 20px; }
+        .sgw-body.stretch { padding: 0; }
+        
+        .alert-list-modern { list-style: none; padding: 0; margin: 0; }
+        .alert-list-modern li { display: flex; gap: 12px; align-items: flex-start; font-size: 1rem; color: var(--gray-700); margin-bottom: 16px; line-height: 1.5; }
+        .alert-list-modern li:last-child { margin-bottom: 0; }
+        
+        .feed-item-modern { padding: 20px; border-bottom: 1px solid var(--gray-100); }
+        .feed-item-modern.outline { background: var(--gray-50); }
+        .fi-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .fi-time { font-size: 0.85rem; color: var(--gray-500); font-weight: 700; }
+        .feed-item-modern h4 { font-size: 1.1rem; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+        .fi-loc { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; color: var(--gray-500); font-weight: 600; }
+        
+        .badge-found { background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; }
+        .badge-lost { background: var(--red-light); color: var(--red-dark); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; }
+        .badge-returned { background: var(--blue-light); color: var(--blue); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; }
+        
+        .sgw-footer {
+           display: block; padding: 16px; text-align: center; background: var(--off-white);
+           color: var(--blue); font-weight: 800; text-decoration: none; border-top: 1px solid var(--gray-200);
+           transition: background 0.2s;
+        }
+        .sgw-footer:hover { background: var(--gray-200); }
+
+        /* ── FOOTER CTA ── */
+        .bg-navy { background: var(--navy); color: white; padding: 100px 0; }
+        .focus-container { text-align: center; max-width: 680px; margin: 0 auto; }
+        .focus-container h2 { font-size: 2.8rem; margin-bottom: 24px; font-weight: 900; }
+        .focus-container p { font-size: 1.3rem; color: var(--navy-light); line-height: 1.6; margin-bottom: 32px; }
+
+        @media (max-width: 960px) {
+           .content-dual-grid { grid-template-columns: 1fr; }
         }
       `}</style>
-        </div>
-    );
+    </div>
+  );
 };
+
+/* Local Icons */
+const BellIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>;
+const ClockIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>;
 
 export default Home;

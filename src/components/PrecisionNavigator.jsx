@@ -1,20 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Navigation, CheckCircle2, Volume2, VolumeX, X, MapPin } from 'lucide-react';
+import { Navigation, CheckCircle2, Volume2, VolumeX, X, MapPin, AlertCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
-const PrecisionNavigator = ({ target, onArrival }) => {
+const PrecisionNavigator = ({ target }) => {
     const { state, dispatch } = useApp();
     const [distance, setDistance] = useState(0);
     const [angle, setAngle] = useState(0);
     const [isMuted, setIsMuted] = useState(!state.voiceEnabled);
-    const [message, setMessage] = useState('Finding your current position...');
-    const [directionInstruction, setDirectionInstruction] = useState('Determining route...');
+    const [message, setMessage] = useState('Calculating route...');
+    const [directionInstruction, setDirectionInstruction] = useState('Preparing...');
     const [isArrived, setIsArrived] = useState(false);
-    const [routeCoords, setRouteCoords] = useState([]);
     const [routeGeometry, setRouteGeometry] = useState(null);
     const [routeSteps, setRouteSteps] = useState([]);
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
+    const [routeError, setRouteError] = useState(null);
+    const [routeLoading, setRouteLoading] = useState(true);
 
     const [initialDistance, setInitialDistance] = useState(null);
 
@@ -47,24 +47,38 @@ const PrecisionNavigator = ({ target, onArrival }) => {
         lastInstructionRef.current = text;
     };
 
-    // Fetch route ONCE when target changes, using current location at that moment
+    // Fetch route ONCE when target changes
     useEffect(() => {
         let cancelled = false;
 
         const fetchRoute = async () => {
-            if (!state.myLocation || !target.coords) return;
+            if (!target.coords) {
+                setRouteError('No target coordinates available.');
+                setRouteLoading(false);
+                return;
+            }
 
-            const [uLat, uLng] = state.myLocation;
+            // Use current location or fall back to school center
+            const userLoc = state.myLocation || [38.6228, -90.5347];
+            const [uLat, uLng] = userLoc;
             const [tLat, tLng] = target.coords;
 
-            console.log('Fetching route from', [uLat, uLng], 'to', [tLat, tLng]);
+            setRouteLoading(true);
+            setRouteError(null);
+            setMessage('Calculating route...');
+            setDirectionInstruction('Preparing...');
 
             try {
-                // Use OSRM 'driving' profile for detailed turn-by-turn with street names
-                // The 'foot' profile only returns "Head towards destination" with no details
+                // Use OSRM with 8 second timeout
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 8000);
+
                 const res = await fetch(
-                    `https://router.project-osrm.org/route/v1/driving/${uLng},${uLat};${tLng},${tLat}?geometries=geojson&steps=true&overview=full&annotations=true`
+                    `https://router.project-osrm.org/route/v1/foot/${uLng},${uLat};${tLng},${tLat}?geometries=geojson&steps=true&overview=full`,
+                    { signal: controller.signal }
                 );
+                clearTimeout(timeout);
+
                 const data = await res.json();
 
                 if (cancelled) return;
@@ -73,31 +87,66 @@ const PrecisionNavigator = ({ target, onArrival }) => {
                     const route = data.routes[0];
                     const steps = route.legs[0].steps;
 
-                    console.log('Route obtained:', route.geometry.coordinates.length, 'points,', steps.length, 'steps');
-                    steps.forEach((s, i) => console.log(`  Step ${i}: ${s.maneuver?.instruction} (${Math.round(s.distance * 3.28)}ft)`));
-
                     setRouteGeometry(route.geometry.coordinates);
                     setRouteSteps(steps);
+                    setRouteLoading(false);
                     dispatch({ type: 'SET_ACTIVE_ROUTE', payload: route.geometry.coordinates });
+                } else {
+                    // Fallback: try driving profile
+                    const res2 = await fetch(
+                        `https://router.project-osrm.org/route/v1/driving/${uLng},${uLat};${tLng},${tLat}?geometries=geojson&steps=true&overview=full`
+                    );
+                    const data2 = await res2.json();
+
+                    if (cancelled) return;
+
+                    if (data2.routes && data2.routes.length > 0) {
+                        const route = data2.routes[0];
+                        const steps = route.legs[0].steps;
+                        setRouteGeometry(route.geometry.coordinates);
+                        setRouteSteps(steps);
+                        setRouteLoading(false);
+                        dispatch({ type: 'SET_ACTIVE_ROUTE', payload: route.geometry.coordinates });
+                    } else {
+                        setRouteError('Could not calculate route. Navigate directly to the pin on the map.');
+                        setRouteLoading(false);
+                    }
                 }
             } catch (error) {
+                if (cancelled) return;
                 console.error("Routing Error:", error);
+
+                if (error.name === 'AbortError') {
+                    setRouteError('Route calculation timed out. Navigate directly using the pin on the map.');
+                } else {
+                    setRouteError('Route calculation failed. Navigate directly using the pin on the map.');
+                }
+                setRouteLoading(false);
+
+                // Still show direct distance as fallback
+                const dx = (tLat - uLat) * 364567;
+                const dy = (tLng - uLng) * 284483;
+                const directDist = Math.sqrt(dx * dx + dy * dy);
+                setDistance(Math.round(directDist));
+                setDirectionInstruction('Navigate to pin');
+                setMessage(`Head towards the marker. Approximately ${Math.round(directDist)} ft away.`);
             }
         };
 
         fetchRoute();
 
-        // Cleanup ONLY on unmount or target change — NOT on every GPS tick
         return () => {
             cancelled = true;
             dispatch({ type: 'SET_ACTIVE_ROUTE', payload: null });
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [target.coords, dispatch]); // DO NOT include state.myLocation — that causes refresh loop
+    }, [target.coords, dispatch]);
 
     useEffect(() => {
+        if (!routeSteps || routeSteps.length === 0) return;
+
         const updateCalculations = () => {
-            if (!routeSteps || routeSteps.length === 0) return;
+            if (!state.myLocation) return;
 
             const [uLat, uLng] = state.myLocation;
             const [tLat, tLng] = target.coords;
@@ -120,14 +169,12 @@ const PrecisionNavigator = ({ target, onArrival }) => {
             if (initialDistance === null) setInitialDistance(distFeet);
 
             // Determine heading based on next coordinate in step
-            let targetHeading = null;
             if (routeGeometry && routeGeometry.length > 1) {
-                const nextCoord = routeGeometry[1]; // simplified assumption for heading
+                const nextCoord = routeGeometry[1];
                 const rdx = nextCoord[0] - uLng;
                 const rdy = nextCoord[1] - uLat;
                 const rad = Math.atan2(rdy, rdx);
-                targetHeading = (rad * 180) / Math.PI;
-                setAngle(targetHeading);
+                setAngle((rad * 180) / Math.PI);
             }
 
             if (directDist < 15 || distFeet < 15) {
@@ -138,40 +185,30 @@ const PrecisionNavigator = ({ target, onArrival }) => {
             } else if (distFeet < 50) {
                 setIsArrived(false);
                 setDirectionInstruction("Approaching");
-                setMessage(`Searching within 50 feet. Look near ${target.location}.`);
-                speak(`The item should be within 50 feet of you now. Look around ${target.location}.`);
+                setMessage(`Searching within 50 feet. Look near ${target.location || target.location_name || 'the marker'}.`);
+                speak(`The item should be within 50 feet of you now.`);
             } else {
                 setIsArrived(false);
-
-                // ═══ Google Maps-style directions ═══
-                // Show distance until the NEXT maneuver, and what that maneuver is.
-                // Current step = what you're doing now (walking/driving on a road)
-                // Next step = what's coming up (the turn)
 
                 const currentStep = routeSteps[currentStepIndex];
                 const nextStep = currentStepIndex + 1 < routeSteps.length ? routeSteps[currentStepIndex + 1] : null;
 
                 if (currentStep) {
-                    // Advance step when close enough
                     if (currentStep.distance < 15 && nextStep) {
                         setCurrentStepIndex(prev => prev + 1);
                     }
                 }
 
-                // Distance until the NEXT maneuver (current step's remaining distance)
                 const feetToNextManeuver = currentStep ? Math.round(currentStep.distance * 3.28084) : 0;
 
-                // What is the next action?
                 const upcomingStep = nextStep || currentStep;
                 const nextInstruction = upcomingStep?.maneuver?.instruction || 'Continue to destination';
                 const nextStreet = upcomingStep?.name || '';
                 const nextModifier = upcomingStep?.maneuver?.modifier || '';
                 const nextType = upcomingStep?.maneuver?.type || '';
 
-                // Current road
                 const currentRoad = currentStep?.name || '';
 
-                // ── Build the short title (big text) ──
                 let shortTitle = 'Navigate';
                 if (nextStep) {
                     if (nextModifier.includes('left')) shortTitle = '↰ Turn Left';
@@ -184,10 +221,8 @@ const PrecisionNavigator = ({ target, onArrival }) => {
                     shortTitle = '◉ Arriving';
                 }
 
-                // ── Build the full message (detail text) ──
                 let fullMessage = '';
                 if (nextStep && feetToNextManeuver > 0) {
-                    // "In 500 feet, turn left onto Baxter Road"
                     fullMessage = `In ${feetToNextManeuver} ft, ${nextInstruction.toLowerCase()}`;
                     if (nextStreet && !nextInstruction.includes(nextStreet)) {
                         fullMessage += ` onto ${nextStreet}`;
@@ -201,7 +236,6 @@ const PrecisionNavigator = ({ target, onArrival }) => {
                     fullMessage = `Continue${currentRoad ? ' on ' + currentRoad : ''} to destination`;
                 }
 
-                // Add current road context
                 if (currentRoad && nextStep) {
                     fullMessage += `. Currently on ${currentRoad}.`;
                 }
@@ -209,7 +243,6 @@ const PrecisionNavigator = ({ target, onArrival }) => {
                 setDirectionInstruction(shortTitle);
                 setMessage(fullMessage);
 
-                // Speak the upcoming direction — speak() auto-deduplicates
                 let voiceMsg = '';
                 if (nextStep && feetToNextManeuver > 50) {
                     voiceMsg = `In ${feetToNextManeuver} feet, ${nextInstruction.toLowerCase()}${nextStreet ? ' onto ' + nextStreet : ''}`;
@@ -222,7 +255,6 @@ const PrecisionNavigator = ({ target, onArrival }) => {
             }
         };
 
-        // Real app would use a geolocation watcher interval here, for now it runs on myLocation change
         updateCalculations();
         const intervalId = setInterval(updateCalculations, 1000);
 
@@ -241,11 +273,9 @@ const PrecisionNavigator = ({ target, onArrival }) => {
     const progressPercent = initialDistance ? Math.max(0, Math.min(100, 100 - ((distance / initialDistance) * 100))) : 0;
 
     return (
-        <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
+        <div
             className="floating-navigator glass"
+            style={{ animation: 'fadeUp 0.3s ease-out' }}
         >
             <div className="nav-header">
                 <button className="icon-btn-ghost" onClick={handleLeave}>
@@ -258,10 +288,16 @@ const PrecisionNavigator = ({ target, onArrival }) => {
 
             <div className="nav-body">
                 <div className="nav-icon-large">
-                    {isArrived ? (
+                    {routeLoading ? (
+                        <div className="spin" style={{ color: 'var(--color-primary)' }}>
+                            <Navigation size={48} />
+                        </div>
+                    ) : isArrived ? (
                         <div className="arrival-pulse">
                             <CheckCircle2 size={48} color="#10B981" />
                         </div>
+                    ) : routeError ? (
+                        <AlertCircle size={48} color="#f59e0b" />
                     ) : (
                         <Navigation
                             size={48}
@@ -272,8 +308,11 @@ const PrecisionNavigator = ({ target, onArrival }) => {
                 </div>
 
                 <div className="nav-instructions">
-                    <h1>{directionInstruction}</h1>
-                    <p>{message}</p>
+                    <h1>{routeLoading ? 'Calculating...' : directionInstruction}</h1>
+                    <p>{routeLoading ? 'Fetching the best route for you...' : message}</p>
+                    {routeError && (
+                        <p style={{ color: '#b45309', fontSize: '0.8rem', marginTop: 8, fontWeight: 600 }}>{routeError}</p>
+                    )}
                 </div>
             </div>
 
@@ -282,17 +321,19 @@ const PrecisionNavigator = ({ target, onArrival }) => {
                     <>
                         <div className="nav-stats">
                             <div className="n-stat">
-                                <strong>{distance} ft</strong>
+                                <strong>{routeLoading ? '—' : `${distance} ft`}</strong>
                                 <span>Remaining</span>
                             </div>
                             <div className="n-stat">
-                                <strong>{Math.ceil(etaSeconds / 60)} min</strong>
+                                <strong>{routeLoading ? '—' : `${Math.ceil(etaSeconds / 60)} min`}</strong>
                                 <span>ETA</span>
                             </div>
                         </div>
-                        <div className="nav-progress-bar">
-                            <div className="nav-progress-fill" style={{ width: `${progressPercent}%` }} />
-                        </div>
+                        {!routeLoading && (
+                            <div className="nav-progress-bar">
+                                <div className="nav-progress-fill" style={{ width: `${progressPercent}%` }} />
+                            </div>
+                        )}
                     </>
                 ) : (
                     <div className="arrival-actions animate-fade">
@@ -423,6 +464,8 @@ const PrecisionNavigator = ({ target, onArrival }) => {
                 .mt-2 { margin-top: 5px; }
                 .icon-btn-ghost { background: transparent; border: none; cursor: pointer; color: var(--text-dim); transition: 0.2s; padding: 8px; border-radius: 50%; }
                 .icon-btn-ghost:hover { background: rgba(0,0,0,0.05); color: var(--color-dark); }
+                .spin { animation: spin 1.5s linear infinite; display: inline-flex; }
+                @keyframes spin { 100% { transform: rotate(360deg); } }
 
                 @keyframes pulseSuccess {
                     0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
@@ -440,7 +483,7 @@ const PrecisionNavigator = ({ target, onArrival }) => {
                     }
                 }
             `}</style>
-        </motion.div>
+        </div>
     );
 };
 

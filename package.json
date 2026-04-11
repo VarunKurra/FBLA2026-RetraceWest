@@ -1,5 +1,5 @@
 {
-  "name": "vogue-vault",
+  "name": "retrace-west",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -12,25 +12,25 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.99.0",
     "canvas-confetti": "^1.9.4",
+    "cesium": "^1.140.0",
     "framer-motion": "^12.34.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.564.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-leaflet": "^5.0.0",
-    "react-router-dom": "^7.13.0"
+    "react-router-dom": "^7.13.0",
+    "resium": "^1.19.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
-    "cesium": "^1.138.0",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
-    "resium": "^1.19.4",
     "vite": "^7.3.1",
     "vite-plugin-cesium": "^1.2.23"
   }

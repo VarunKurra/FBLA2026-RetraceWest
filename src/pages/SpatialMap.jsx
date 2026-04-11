@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Map as MapIcon, Compass, Crosshair, Navigation, Info, Layers } from 'lucide-react';
 import MapView from '../components/MapView';
-import { useApp } from '../context/AppContext';
+import { useApp, PARKWAY_WEST } from '../context/AppContext';
 import { MISSOURI_SCHOOLS } from '../data/missouriSchools';
+import { EXAMPLE_ITEMS } from '../data/exampleItems';
 import { useNavigate } from 'react-router-dom';
 import PrecisionNavigator from '../components/PrecisionNavigator';
 
@@ -11,7 +12,7 @@ const SpatialMap = () => {
     const { state, dispatch } = useApp();
     const navigate = useNavigate();
     const [selectedItem, setSelectedItem] = useState(null);
-    const [mapStyle, setMapStyle] = useState('satellite');
+    const [mapMode, setMapMode] = useState('street'); // 'street' or '3d'
 
     if (!state.user) {
         return (
@@ -31,7 +32,16 @@ const SpatialMap = () => {
     }
 
     const userSchool = MISSOURI_SCHOOLS.find(s => s.id === state.user.schoolId);
-    const schoolItems = state.items.filter(item => item.schoolId === state.user.schoolId);
+    
+    // Intercept items during render to overcome Vite HMR preserving stale Reducer state across saves.
+    // We strictly map any demo items to our newly calculated pinpoint coordinates to assure they hover the school perfectly.
+    const schoolItems = state.items.filter(item => item.schoolId === state.user.schoolId).map(item => {
+        const freshDemoItem = EXAMPLE_ITEMS.find(e => e.id === item.id || e.title === item.title);
+        if (freshDemoItem) {
+            return { ...item, coords: freshDemoItem.coords };
+        }
+        return item;
+    });
 
     // If there is an active navigation item, we shouldn't show the basic HUD, we show the real navigator.
     const isNavigating = !!state.activeItem;
@@ -60,13 +70,19 @@ const SpatialMap = () => {
                     </div>
                 </div>
 
-                {/* Map Style Toggle */}
+                {/* Map Mode Toggle */}
                 <div className="map-style-toggle glass">
-                    <button className={`style-btn ${mapStyle === 'street' ? 'active' : ''}`} onClick={() => setMapStyle('street')}>
+                    <button
+                        className={`style-btn ${mapMode === 'street' ? 'active' : ''}`}
+                        onClick={() => setMapMode('street')}
+                    >
                         <MapIcon size={16} /> Street
                     </button>
-                    <button className={`style-btn ${mapStyle === 'satellite' ? 'active' : ''}`} onClick={() => setMapStyle('satellite')}>
-                        <Layers size={16} /> Satellite
+                    <button
+                        className={`style-btn ${mapMode === '3d' ? 'active' : ''}`}
+                        onClick={() => setMapMode('3d')}
+                    >
+                        <Layers size={16} /> 3D
                     </button>
                 </div>
 
@@ -121,16 +137,21 @@ const SpatialMap = () => {
                     userLocation={state.myLocation}
                     items={schoolItems}
                     schoolBoundary={{
-                        center: userSchool?.coords || state.myLocation,
-                        radius: (userSchool?.radius || 1.0) * 1609.34 // miles to meters
+                        // Cesium fromDegrees expects [lng, lat]; school coords are [lat, lng]
+                        center: [
+                            userSchool?.coords?.[1] ?? -90.5347,
+                            userSchool?.coords?.[0] ?? 38.6228,
+                        ],
+                        radius: (userSchool?.radius || 0.25) * 1609.34,
                     }}
                     onItemSelect={(item) => !isNavigating && setSelectedItem(item)}
-                    mapStyle={mapStyle}
+                    enable3D={mapMode === '3d'}
                     activeRoute={state.activeRoute}
                 />
             </div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{
+                __html: `
         .map-page-v5 { width: 100%; height: 100vh; position: relative; background: #E2E8F0; overflow: hidden; }
         .map-page-v5.empty { display: flex; align-items: center; justify-content: center; background: #F8FAFC; }
         .empty-card { padding: 4rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1.5rem; }
@@ -232,7 +253,7 @@ const SpatialMap = () => {
           .h-main p { font-size: 0.8rem; }
           .map-hint { bottom: 70px; width: 95%; font-size: 0.75rem; }
         }
-      `}</style>
+      ` }} />
         </div>
     );
 };

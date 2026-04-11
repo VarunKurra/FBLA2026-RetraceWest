@@ -1,75 +1,50 @@
-export const MISSOURI_SCHOOLS = [
-    // HIGHER EDUCATION
-    { id: 'uni-mizzou', name: 'University of Missouri (Mizzou)', city: 'Columbia', type: 'uni', coords: [38.9404, -92.3277], radius: 1.5 },
-    { id: 'uni-wustl', name: 'Washington University in St. Louis', city: 'St. Louis', type: 'uni', coords: [38.6488, -90.3108], radius: 1.2 },
-    { id: 'uni-msu', name: 'Missouri State University', city: 'Springfield', type: 'uni', coords: [37.2012, -93.2807], radius: 1.2 },
-    { id: 'uni-umkc', name: 'University of Missouri-Kansas City', city: 'Kansas City', type: 'uni', coords: [39.0335, -94.5756], radius: 1.0 },
-    { id: 'uni-mst', name: 'Missouri S&T', city: 'Rolla', type: 'uni', coords: [37.9547, -91.7733], radius: 1.0 },
-    { id: 'uni-slu', name: 'St. Louis University', city: 'St. Louis', type: 'uni', coords: [38.6360, -90.2335], radius: 1.2 },
-    { id: 'uni-semo', name: 'Southeast Missouri State University', city: 'Cape Girardeau', type: 'uni', coords: [37.3135, -89.5281], radius: 1.0 },
-    { id: 'uni-tru', name: 'Truman State University', city: 'Kirksville', type: 'uni', coords: [40.1887, -92.5828], radius: 1.0 },
+// Parkway West High School — hardcoded school data. No need for a full
+// Missouri schools list anymore since this app is only for West High.
 
-    // ST. LOUIS SCHOOL TYPES
-    { id: 'slps-hs', name: 'St. Louis Public High School', city: 'St. Louis', type: 'hs', coords: [38.6270, -90.1994], radius: 1.0 },
-    { id: 'slps-ms', name: 'St. Louis Public Middle School', city: 'St. Louis', type: 'ms', coords: [38.6300, -90.2100], radius: 1.0 },
-    { id: 'rockwood-lafayette', name: 'Lafayette High School (Rockwood)', city: 'Wildwood', type: 'hs', coords: [38.5851, -90.6276], radius: 1.0 },
-    { id: 'rockwood-eureka', name: 'Eureka High School (Rockwood)', city: 'Eureka', type: 'hs', coords: [38.5028, -90.6293], radius: 1.0 },
-    { id: 'rockwood-marquette', name: 'Marquette High School (Rockwood)', city: 'Chesterfield', type: 'hs', coords: [38.6019, -90.5841], radius: 1.0 },
-    { id: 'parkway-central', name: 'Parkway Central High School', city: 'Chesterfield', type: 'hs', coords: [38.6436, -90.5360], radius: 1.0 },
-    { id: 'parkway-west', name: 'Parkway West High School', city: 'Ballwin', type: 'hs', coords: [38.6230, -90.5345], radius: 1.0 },
-    { id: 'parkway-north', name: 'Parkway North High School', city: 'Creve Coeur', type: 'hs', coords: [38.6946, -90.4705], radius: 1.0 },
-    { id: 'ladue-hs', name: 'Ladue Horton Watkins High School', city: 'Ladue', type: 'hs', coords: [38.6517, -90.3804], radius: 1.0 },
-    { id: 'kirkwood-hs', name: 'Kirkwood High School', city: 'Kirkwood', type: 'hs', coords: [38.5804, -90.4131], radius: 1.0 },
-    { id: 'lindbergh-hs', name: 'Lindbergh High School', city: 'St. Louis', type: 'hs', coords: [38.5292, -90.3831], radius: 1.0 },
-    { id: 'affton-hs', name: 'Affton High School', city: 'Affton', type: 'hs', coords: [38.5484, -90.3235], radius: 1.0 },
-    { id: 'mehlville-hs', name: 'Mehlville High School', city: 'St. Louis', type: 'hs', coords: [38.4906, -90.3168], radius: 1.0 },
-    { id: 'oakville-hs', name: 'Oakville High School', city: 'St. Louis', type: 'hs', coords: [38.4526, -90.3541], radius: 1.0 },
+export const PARKWAY_WEST = {
+  id: 'parkway-west',
+  name: 'Parkway West High School',
+  shortName: 'West High',
+  city: 'Chesterfield',
+  state: 'MO',
+  address: '14653 Clayton Rd, Chesterfield, MO 63017',
+  website: 'https://westhigh.parkwayschools.net',
+  mascot: 'Longhorns',
+  colors: { primary: '#B22234', secondary: '#1B2A4A', accent: '#D4A017' },
+  // Coordinates for the school building itself
+  coords: [38.6228, -90.5347],
+  // Approx radius in miles for the campus
+  radius: 0.28,
+  emailDomain: '@parkwayschools.net',
+  // Known locations on campus for quick selection in reports
+  locations: [
+    'Main Office',
+    'Commons / Cafeteria',
+    'Library / Media Center',
+    'Gym (Main)',
+    'Gym (Auxiliary)',
+    'A-Hall',
+    'B-Hall',
+    'C-Hall',
+    'D-Hall',
+    'E-Hall',
+    'Fine Arts Wing',
+    'Science Wing',
+    'Parking Lot A',
+    'Parking Lot B',
+    'Athletic Fields',
+    'Auditorium',
+    'Band Room',
+    'Art Room',
+    'Counseling Office',
+    'Nurse\'s Office',
+    'Student Entrance',
+    'Bus Loop',
+    'Weight Room',
+    'Pool / Natatorium',
+  ],
+};
 
-    // KANSAS CITY
-    { id: 'kcps-hs', name: 'Kansas City Public High School', city: 'Kansas City', type: 'hs', coords: [39.1067, -94.5801], radius: 1.0 },
-    { id: 'blue-springs-hs', name: 'Blue Springs High School', city: 'Blue Springs', type: 'hs', coords: [39.0203, -94.2764], radius: 1.0 },
-    { id: 'ls-west-hs', name: 'Lees Summit West High School', city: 'Lees Summit', type: 'hs', coords: [38.8524, -94.4239], radius: 1.0 },
-    { id: 'ls-north-hs', name: 'Lees Summit North High School', city: 'Lees Summit', type: 'hs', coords: [38.9378, -94.3688], radius: 1.0 },
-    { id: 'liberty-hs', name: 'Liberty High School', city: 'Liberty', type: 'hs', coords: [39.2619, -94.4172], radius: 1.0 },
-    { id: 'park-hill-hs', name: 'Park Hill High School', city: 'Kansas City', type: 'hs', coords: [39.2208, -94.6713], radius: 1.0 },
-    { id: 'north-kc-hs', name: 'North Kansas City High School', city: 'North Kansas City', type: 'hs', coords: [39.1415, -94.5714], radius: 1.0 },
-
-    // CENTRAL
-    { id: 'cps-rock-bridge', name: 'Rock Bridge High School (Columbia)', city: 'Columbia', type: 'hs', coords: [38.9056, -92.3482], radius: 1.0 },
-    { id: 'cps-hickman', name: 'Hickman High School (Columbia)', city: 'Columbia', type: 'hs', coords: [38.9567, -92.3323], radius: 1.0 },
-    { id: 'cps-battle', name: 'Battle High School (Columbia)', city: 'Columbia', type: 'hs', coords: [38.9705, -92.2573], radius: 1.0 },
-    { id: 'jeff-city-hs', name: 'Jefferson City High School', city: 'Jefferson City', type: 'hs', coords: [38.5670, -92.1769], radius: 1.0 },
-    { id: 'capitol-city-hs', name: 'Capitol City High School', city: 'Jefferson City', type: 'hs', coords: [38.5401, -92.2216], radius: 1.0 },
-
-    // SPRINGFIELD & SW
-    { id: 'sps-kickapoo', name: 'Kickapoo High School (Springfield)', city: 'Springfield', type: 'hs', coords: [37.1353, -93.2841], radius: 1.0 },
-    { id: 'sps-glendale', name: 'Glendale High School (Springfield)', city: 'Springfield', type: 'hs', coords: [37.1728, -93.2505], radius: 1.0 },
-    { id: 'sps-parkview', name: 'Parkview High School (Springfield)', city: 'Springfield', type: 'hs', coords: [37.1908, -93.3056], radius: 1.0 },
-    { id: 'sps-central', name: 'Central High School (Springfield)', city: 'Springfield', type: 'hs', coords: [37.2148, -93.2886], radius: 1.0 },
-    { id: 'ozark-hs', name: 'Ozark High School', city: 'Ozark', type: 'hs', coords: [37.0305, -93.2185], radius: 1.0 },
-    { id: 'nixa-hs', name: 'Nixa High School', city: 'Nixa', type: 'hs', coords: [37.0425, -93.2985], radius: 1.0 },
-
-    // OTHER MAJOR
-    { id: 'cape-central-hs', name: 'Cape Central High School', city: 'Cape Girardeau', type: 'hs', coords: [37.3190, -89.5445], radius: 1.0 },
-    { id: 'hannibal-hs', name: 'Hannibal High School', city: 'Hannibal', type: 'hs', coords: [39.6953, -91.3855], radius: 1.0 },
-    { id: 'joplin-hs', name: 'Joplin High School', city: 'Joplin', type: 'hs', coords: [37.0625, -94.5097], radius: 1.0 },
-    { id: 'st-joe-central', name: 'St. Joseph Central High School', city: 'St. Joseph', type: 'hs', coords: [39.7788, -94.8315], radius: 1.0 },
-    { id: 'fulton-hs', name: 'Fulton High School', city: 'Fulton', type: 'hs', coords: [38.8351, -91.9333], radius: 1.0 },
-    { id: 'washington-hs', name: 'Washington High School', city: 'Washington', type: 'hs', coords: [38.5442, -91.0163], radius: 1.0 },
-    { id: 'hazelwood-west', name: 'Hazelwood West High School', city: 'Hazelwood', type: 'hs', coords: [38.7901, -90.3542], radius: 1.0 },
-    { id: 'hazelwood-central', name: 'Hazelwood Central High School', city: 'Florissant', type: 'hs', coords: [38.8051, -90.3014], radius: 1.0 },
-    { id: 'wentzville-liberty', name: 'Liberty High School (Wentzville)', city: 'Lake St. Louis', type: 'hs', coords: [38.7885, -90.7712], radius: 1.0 },
-    { id: 'wentzville-holt', name: 'Holt High School (Wentzville)', city: 'Wentzville', type: 'hs', coords: [38.8153, -90.8428], radius: 1.0 },
-    { id: 'francis-howell-hs', name: 'Francis Howell High School', city: 'St. Charles', type: 'hs', coords: [38.7051, -90.6276], radius: 1.0 },
-    { id: 'st-charles-hs', name: 'St. Charles High School', city: 'St. Charles', type: 'hs', coords: [38.7853, -90.4912], radius: 1.0 },
-    { id: 'ladue-ms', name: 'Ladue Middle School', city: 'Ladue', type: 'ms', coords: [38.6480, -90.3700], radius: 1.0 },
-    { id: 'kirkwood-ms', name: 'Nipher Middle School (Kirkwood)', city: 'Kirkwood', type: 'ms', coords: [38.5820, -90.4100], radius: 1.0 },
-    { id: 'rockwood-crestview', name: 'Crestview Middle School (Rockwood)', city: 'Ellisville', type: 'ms', coords: [38.5900, -90.5800], radius: 1.0 },
-    { id: 'pattonville-hs', name: 'Pattonville High School', city: 'Maryland Heights', type: 'hs', coords: [38.7300, -90.4500], radius: 1.0 },
-    { id: 'ritenour-hs', name: 'Ritenour High School', city: 'St. Louis', type: 'hs', coords: [38.7000, -90.3400], radius: 1.0 },
-    { id: 'normandy-hs', name: 'Normandy High School', city: 'St. Louis', type: 'hs', coords: [38.7000, -90.2800], radius: 1.0 },
-    { id: 'uchity-hs', name: 'University City High School', city: 'University City', type: 'hs', coords: [38.6700, -90.3200], radius: 1.0 },
-    { id: 'clayton-hs', name: 'Clayton High School', city: 'Clayton', type: 'hs', coords: [38.6400, -90.3300], radius: 1.0 },
-    { id: 'brentwood-hs', name: 'Brentwood High School', city: 'Brentwood', type: 'hs', coords: [38.6200, -90.3400], radius: 1.0 },
-    { id: 'maplewood-hs', name: 'Maplewood Richmond Heights High School', city: 'Maplewood', type: 'hs', coords: [38.6100, -90.3200], radius: 1.0 }
-].sort((a, b) => a.name.localeCompare(b.name));
+// keeping this export so old code that imports MISSOURI_SCHOOLS from context
+// wont completely break while we're in the middle of the refactor
+export const MISSOURI_SCHOOLS = [PARKWAY_WEST];
