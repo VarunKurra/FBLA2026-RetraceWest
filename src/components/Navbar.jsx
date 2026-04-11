@@ -249,6 +249,37 @@ const Navbar = () => {
           padding: 12px 24px !important;
           white-space: nowrap !important;
         }
+
+        @media (max-width: 960px) {
+          .navbar-inner {
+            gap: 16px !important;
+            padding: 0 20px !important;
+          }
+          .nav-links {
+            display: none !important;
+          }
+          .nav-mobile-btn {
+            display: block !important;
+          }
+          .nav-right .nav-points-chip,
+          .nav-admin-badge {
+            display: none !important;
+          }
+          .nav-logo-box {
+            width: 40px !important;
+            height: 40px !important;
+          }
+          .nav-brand-name {
+            font-size: 1.15rem !important;
+          }
+          .nav-brand-sub {
+            display: none !important;
+          }
+          .nav-sign-out, .nav-sign-in {
+            font-size: 0.85rem !important;
+            padding: 10px 16px !important;
+          }
+        }
       `}</style>
     </>
   );
