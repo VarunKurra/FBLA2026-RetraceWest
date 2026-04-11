@@ -290,7 +290,10 @@ const Home = () => {
         @media (max-width: 960px) {
            .sh-grid { grid-template-columns: 1fr; text-align: center; }
            .sh-text { margin: 0 auto; max-width: 100%; }
-           .hero-actions { justify-content: center; }
+           .hero-actions { justify-content: center; flex-wrap: wrap; gap: 10px; }
+           .hero-h1 { font-size: clamp(2.2rem, 8vw, 3rem); }
+           .btn-modern { padding: 12px 20px; font-size: 0.95rem; }
+           .hero-lead { font-size: 1.1rem; padding: 0 10px; }
         }
         
         /* ── BUTTONS ── */
