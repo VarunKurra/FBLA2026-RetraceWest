@@ -1,63 +1,64 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { PARKWAY_WEST, MISSOURI_SCHOOLS } from '../data/missouriSchools';
 import { EXAMPLE_ITEMS } from '../data/exampleItems';
+import { fetchAllItems } from '../services/itemService';
+import { getCurrentSessionUser, subscribeToAuthChanges, signOutUser } from '../services/authService';
 
 const AppContext = createContext();
 
-// local storage key -- bumped version since schema changed
 const PERSIST_KEY = 'trackback_pw_v5_state';
 
 const getInitialState = () => {
   const defaultState = {
     user: null,
-    myLocation: PARKWAY_WEST.coords, // default to West High parking lot
+    myLocation: PARKWAY_WEST.coords,
     items: EXAMPLE_ITEMS,
     activeItem: null,
     activeRoute: null,
+    mapView: null,
     voiceEnabled: true,
     captchaSolved: false,
-    notifications: [], // in-app alert notifications
+    notifications: [],
   };
 
   const stored = localStorage.getItem(PERSIST_KEY);
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored);
-      // ONLY load stored items if their ID is in example items, 
-      // ensuring all stale manual offline entries (which start with "it-") are immediately dumped.
-      // Valid Supabase entries will just be dynamically fetched anyway on launch!
-      const fetched = (parsed.items || []).filter(item => item.id.startsWith('ex-'));
-      
-      const existingIds = new Set(fetched.map(i => i.id));
-      const merged = [
-        ...fetched,
-        ...defaultState.items.filter(i => !existingIds.has(i.id))
-      ];
-      return {
-        ...defaultState,
-        ...parsed,
-        items: merged,
-        // always reset these on page load
-        myLocation: defaultState.myLocation,
-        captchaSolved: false,
-        activeRoute: null,
-        activeItem: null,
-      };
-    } catch (e) {
-      console.warn('Failed to parse stored state, starting fresh', e.message);
-    }
+  if (!stored) return defaultState;
+
+  try {
+    const parsed = JSON.parse(stored);
+
+    // Only keep demo items from cache. Old offline reports (it-*) get dropped on reload.
+    const cachedItems = (parsed.items || []).filter(item => item.id.startsWith('ex-'));
+    const existingIds = new Set(cachedItems.map(item => item.id));
+    const mergedItems = [
+      ...cachedItems,
+      ...defaultState.items.filter(item => !existingIds.has(item.id)),
+    ];
+
+    return {
+      ...defaultState,
+      ...parsed,
+      items: mergedItems,
+      myLocation: defaultState.myLocation,
+      captchaSolved: false,
+      activeRoute: null,
+      activeItem: null,
+      mapView: null,
+    };
+  } catch (error) {
+    console.warn('Failed to parse stored state, starting fresh', error.message);
+    return defaultState;
   }
-  return defaultState;
 };
 
+// Data abstraction: all app state flows through one reducer so updates stay predictable.
 function appReducer(state, action) {
   switch (action.type) {
     case 'LOGIN':
       return { ...state, user: action.payload };
 
     case 'LOGOUT':
-      // fire off the supabase sign out but don't wait for it
-      import('../supabaseClient').then(({ supabase }) => supabase.auth.signOut());
+      signOutUser();
       return { ...state, user: null, activeItem: null, notifications: [] };
 
     case 'UPDATE_USER_POINTS':
@@ -66,25 +67,30 @@ function appReducer(state, action) {
 
     case 'SET_ITEMS': {
       const fetched = action.payload || [];
-      
-      // Override coordinates of any seeded example items to force our new left/down shifting
-      const updatedFetched = fetched.map(item => {
-        const localMatch = EXAMPLE_ITEMS.find(e => e.id === item.id || e.title === item.title);
+
+      // Keep demo pins aligned with our campus layout even after a remote sync.
+      const normalized = fetched.map(item => {
+        const localMatch = EXAMPLE_ITEMS.find(
+          example => example.id === item.id || example.title === item.title
+        );
+
         if (localMatch) {
           return { ...item, coords: localMatch.coords };
         }
-        if (item.coords && item.coords.length === 2 && item.coords[1] > -90.5360) {
-          // If there are real user-reported items that are also stuck in the top right, shift them heavily left and a bit down
+
+        if (item.coords?.length === 2 && item.coords[1] > -90.5360) {
           return { ...item, coords: [item.coords[0] - 0.0015, item.coords[1] - 0.0035] };
         }
+
         return item;
       });
 
-      const existingIds = new Set(updatedFetched.map(i => i.id));
+      const existingIds = new Set(normalized.map(item => item.id));
       const merged = [
-        ...updatedFetched,
-        ...state.items.filter(i => !existingIds.has(i.id))
+        ...normalized,
+        ...state.items.filter(item => !existingIds.has(item.id)),
       ];
+
       return { ...state, items: merged };
     }
 
@@ -95,12 +101,26 @@ function appReducer(state, action) {
       const { itemId, status } = action.payload;
       return {
         ...state,
-        items: state.items.map(i => i.id === itemId ? { ...i, status } : i),
+        items: state.items.map(item => (
+          item.id === itemId ? { ...item, status } : item
+        )),
       };
     }
 
     case 'REMOVE_ITEM':
-      return { ...state, items: state.items.filter(i => i.id !== action.payload) };
+      return { ...state, items: state.items.filter(item => item.id !== action.payload) };
+
+    case 'CLAIM_ITEM': {
+      const itemId = action.payload;
+      return {
+        ...state,
+        items: state.items.map(item => (
+          item.id === itemId ? { ...item, status: 'claimed' } : item
+        )),
+        activeItem: null,
+        activeRoute: null,
+      };
+    }
 
     case 'TOGGLE_WAITLIST': {
       const currentWaitlist = state.user?.waitlist || [];
@@ -108,6 +128,7 @@ function appReducer(state, action) {
       const newWaitlist = currentWaitlist.includes(itemId)
         ? currentWaitlist.filter(id => id !== itemId)
         : [...currentWaitlist, itemId];
+
       return { ...state, user: { ...state.user, waitlist: newWaitlist } };
     }
 
@@ -119,6 +140,12 @@ function appReducer(state, action) {
 
     case 'SET_ACTIVE_ROUTE':
       return { ...state, activeRoute: action.payload };
+
+    case 'SET_MAP_VIEW':
+      return { ...state, mapView: action.payload };
+
+    case 'CLEAR_MAP_VIEW':
+      return { ...state, mapView: null };
 
     case 'UPDATE_LOCATION':
       return { ...state, myLocation: action.payload };
@@ -149,89 +176,70 @@ function appReducer(state, action) {
 export const AppProvider = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, null, getInitialState);
 
-  // persist state to localStorage (debounced by React's batching)
+  // Saves state to localStorage so the app keeps working after a refresh.
   useEffect(() => {
     localStorage.setItem(PERSIST_KEY, JSON.stringify(state));
   }, [state]);
 
-  // watch GPS position
+  // Geolocation: track the user's position for distance sorting and walking directions.
   useEffect(() => {
     if (!('geolocation' in navigator)) return;
 
     navigator.geolocation.getCurrentPosition(
-      pos => dispatch({ type: 'UPDATE_LOCATION', payload: [pos.coords.latitude, pos.coords.longitude] }),
-      err => console.log('GPS initial error:', err.code),
+      position => dispatch({
+        type: 'UPDATE_LOCATION',
+        payload: [position.coords.latitude, position.coords.longitude],
+      }),
+      error => console.log('GPS initial error:', error.code),
       { enableHighAccuracy: true, timeout: 8000 }
     );
 
     const watcher = navigator.geolocation.watchPosition(
-      pos => dispatch({ type: 'UPDATE_LOCATION', payload: [pos.coords.latitude, pos.coords.longitude] }),
-      err => console.log('GPS watch error:', err.code),
+      position => dispatch({
+        type: 'UPDATE_LOCATION',
+        payload: [position.coords.latitude, position.coords.longitude],
+      }),
+      error => console.log('GPS watch error:', error.code),
       { enableHighAccuracy: true }
     );
 
     return () => navigator.geolocation.clearWatch(watcher);
   }, []);
 
-  // Supabase session + data fetch
+  // Database sync: load the user session and item list from Supabase on startup.
   useEffect(() => {
     let mounted = true;
 
-    import('../supabaseClient').then(({ supabase }) => {
-      // load existing session
-      supabase.auth.getSession().then(async ({ data: { session } }) => {
-        if (session && mounted) {
-          // try to fetch the full profile row (incl. points, role, etc.)
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          const userData = profile
-            ? { ...profile, email: session.user.email }
-            : { ...session.user.user_metadata, id: session.user.id, email: session.user.email };
-
-          dispatch({ type: 'LOGIN', payload: userData });
+    getCurrentSessionUser()
+      .then(user => {
+        if (user && mounted) {
+          dispatch({ type: 'LOGIN', payload: user });
         }
+      })
+      .catch(error => {
+        console.warn('Session restore skipped:', error.message);
       });
 
-      // listen for auth changes (login / logout)
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-        if (session && mounted) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          const userData = profile
-            ? { ...profile, email: session.user.email }
-            : { ...session.user.user_metadata, id: session.user.id, email: session.user.email };
-
-          dispatch({ type: 'LOGIN', payload: userData });
-        }
-      });
-
-      // fetch items from database
-      supabase.from('items').select('*').order('created_at', { ascending: false }).then(({ data, error }) => {
-        if (!error && data && data.length > 0 && mounted) {
-          const mappedData = data.map(item => ({
-            ...item,
-            image: item.image_url || null,
-            schoolId: item.schoolid || 'parkway-west',
-            timestamp: item.timestamp ? Number(item.timestamp) : new Date(item.created_at).getTime(),
-          }));
-          dispatch({ type: 'SET_ITEMS', payload: mappedData });
-        } else if (error) {
-          console.warn('Could not load items from Supabase, using local demo data:', error.message);
-        }
-      });
-
-      return () => { subscription?.unsubscribe(); };
+    const subscription = subscribeToAuthChanges(user => {
+      if (mounted) {
+        dispatch({ type: 'LOGIN', payload: user });
+      }
     });
 
-    return () => { mounted = false; };
+    fetchAllItems()
+      .then(items => {
+        if (items.length > 0 && mounted) {
+          dispatch({ type: 'SET_ITEMS', payload: items });
+        }
+      })
+      .catch(error => {
+        console.warn('Could not load items from Supabase, using local demo data:', error.message);
+      });
+
+    return () => {
+      mounted = false;
+      subscription?.unsubscribe();
+    };
   }, []);
 
   return (
@@ -243,5 +251,5 @@ export const AppProvider = ({ children }) => {
 
 export const useApp = () => useContext(AppContext);
 
-// re-export school data so pages can import from here too  
+// eslint-disable-next-line react-refresh/only-export-components
 export { PARKWAY_WEST, MISSOURI_SCHOOLS };

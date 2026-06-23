@@ -1,11 +1,16 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Search, MapPin, Navigation, BookmarkPlus, Crosshair, GraduationCap, Filter, Clock, ChevronRight, Sparkles, BrainCircuit, MessageSquare, Send, X, Camera, ArrowRight, PackageSearch } from 'lucide-react';
-
-
-import { useApp, PARKWAY_WEST } from '../context/AppContext';
-import { MISSOURI_SCHOOLS } from '../data/missouriSchools';
+import {
+    Search, MapPin, Navigation, Clock, ChevronRight, Sparkles,
+    BrainCircuit, MessageSquare, X, Camera, ArrowRight, PackageSearch,
+    GraduationCap, Filter,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
+import { useApp } from '../context/AppContext';
+import { rankItemsByQuery } from '../services/aiService';
+import { haversineDistanceMiles, formatItemDistance } from '../utilities/geo';
+import { ITEM_CATEGORIES } from '../constants/categories';
 
 const Registry = () => {
     const { state, dispatch } = useApp();
@@ -23,7 +28,7 @@ const Registry = () => {
     const [aiRankedIds, setAiRankedIds] = useState(null); // ordered array of IDs from AI
     const [aiError, setAiError] = useState(null);
 
-    // Inquiry & Claim Protocol
+    // Claim inquiry modal
     const [inquiryItem, setInquiryItem] = useState(null);
     const [inquiryMessage, setInquiryMessage] = useState('');
     const [sendingInquiry, setSendingInquiry] = useState(false);
@@ -64,28 +69,10 @@ const Registry = () => {
         );
     }
 
-    const getRawDistance = (itemCoords) => {
-        if (!state.myLocation) return 999;
-        const [uLat, uLng] = state.myLocation;
-        const [tLat, tLng] = itemCoords;
-        const R = 3958.8;
-        const dLat = (tLat - uLat) * Math.PI / 180;
-        const dLng = (tLng - uLng) * Math.PI / 180;
-        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(uLat * Math.PI / 180) * Math.cos(tLat * Math.PI / 180) *
-            Math.sin(dLng / 2) * Math.sin(dLng / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
-    };
+    const getRawDistance = (itemCoords) => haversineDistanceMiles(state.myLocation, itemCoords);
+    const getItemDistance = (itemCoords) => formatItemDistance(state.myLocation, itemCoords);
 
-    const getItemDistance = (itemCoords) => {
-        const distMi = getRawDistance(itemCoords);
-        if (distMi > 100) return "Unknown";
-        if (distMi < 0.1) return `${(distMi * 5280).toFixed(0)} FT`;
-        return `${distMi.toFixed(2)} MI`;
-    };
-
-    // AI-powered search using Groq
+    // Search with Groq when the user presses Enter or clicks the search button.
     const handleAiSearch = async (query) => {
         const searchQuery = query || searchTerm;
         if (!searchQuery.trim()) {
@@ -98,99 +85,21 @@ const Registry = () => {
         setAiError(null);
 
         try {
-            const candidateItems = state.items.filter(i =>
-                i.schoolId === state.user.schoolId || i.schoolId === 'parkway-west' || !i.schoolId
+            const candidateItems = state.items.filter(item =>
+                item.schoolId === state.user.schoolId || item.schoolId === 'parkway-west' || !item.schoolId
             );
 
             if (candidateItems.length === 0) {
                 setAiRankedIds([]);
-                setAiSearching(false);
                 return;
             }
 
-            const itemSummaries = candidateItems.map(i => ({
-                id: i.id,
-                title: i.title || '',
-                category: i.category || '',
-                description: i.description || '',
-                location: i.location_name || i.location || '',
-            }));
-
-            const apiKey = import.meta.env.VITE_GROQ_API_KEY;
-            if (!apiKey) {
-                throw new Error('Groq API key not configured (VITE_GROQ_API_KEY missing from .env)');
-            }
-
-            const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: "llama-3.1-8b-instant",
-                    messages: [
-                        {
-                            role: "system",
-                            content: `You are a campus lost-and-found search assistant. Given a user search query and a list of items, rank the items by how likely they match the query. Consider semantic similarity, not just exact keyword matches. For example, "jacket" should match "hoodie" or "coat" with moderate confidence.
-
-Return ONLY a valid JSON array of objects with "id" and "confidence" (0.0 to 1.0) fields. Only include items with confidence >= 0.2. Sort by confidence descending. No markdown, no prose, no explanation — just the JSON array.
-
-Example output: [{"id":"ex-001","confidence":0.95},{"id":"ex-003","confidence":0.6}]
-
-If nothing matches at all, return: []`
-                        },
-                        {
-                            role: "user",
-                            content: `Search query: "${searchQuery}"
-
-Items to evaluate:
-${JSON.stringify(itemSummaries)}`
-                        }
-                    ],
-                    temperature: 0.1,
-                    max_tokens: 1024,
-                })
-            });
-
-            if (!response.ok) {
-                const errBody = await response.json().catch(() => null);
-                const errMsg = errBody?.error?.message || `HTTP ${response.status}`;
-                throw new Error(`Groq API: ${errMsg}`);
-            }
-
-            const data = await response.json();
-            const content = data.choices?.[0]?.message?.content || '[]';
-
-            // Parse the response — handle potential formatting issues
-            let parsed;
-            try {
-                // Try to extract JSON from the response (handle markdown code blocks)
-                const jsonMatch = content.match(/\[[\s\S]*\]/);
-                parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content);
-            } catch (parseErr) {
-                console.warn('AI response parse error:', content);
-                // Fallback: try to extract IDs from comma-separated text
-                if (content.toLowerCase().includes('none') || content.trim() === '[]') {
-                    parsed = [];
-                } else {
-                    parsed = [];
-                }
-            }
-
-            if (Array.isArray(parsed) && parsed.length > 0) {
-                // Sort by confidence descending and extract IDs
-                const sorted = parsed
-                    .filter(item => item.confidence >= 0.2)
-                    .sort((a, b) => (b.confidence || 0) - (a.confidence || 0));
-                setAiRankedIds(sorted.map(item => item.id));
-            } else {
-                setAiRankedIds([]);
-            }
-        } catch (e) {
-            console.error("AI Search Failed:", e);
-            setAiError(`AI search error: ${e.message}`);
-            setAiRankedIds(null); // Fall back to showing all
+            const rankedIds = await rankItemsByQuery(searchQuery, candidateItems);
+            setAiRankedIds(rankedIds);
+        } catch (error) {
+            console.error('AI Search Failed:', error);
+            setAiError(`AI search error: ${error.message}`);
+            setAiRankedIds(null);
         } finally {
             setAiSearching(false);
         }
@@ -222,7 +131,6 @@ ${JSON.stringify(itemSummaries)}`
         setInquiryMessage('');
     };
 
-    const userSchool = MISSOURI_SCHOOLS.find(s => s.id === state.user.schoolId) || MISSOURI_SCHOOLS[0];
 
     // Build filtered items list
     let filteredItems = state.items.filter(item => {
@@ -256,7 +164,7 @@ ${JSON.stringify(itemSummaries)}`
         filteredItems.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
     }
 
-    const categories = ['All', 'Electronics', 'Jewelry', 'Documents', 'Accessories', 'Other'];
+    const categories = ITEM_CATEGORIES;
 
     return (
         <div className="reg-v5 page-wrapper">

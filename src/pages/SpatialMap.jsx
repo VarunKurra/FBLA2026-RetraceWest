@@ -1,18 +1,27 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Map as MapIcon, Compass, Crosshair, Navigation, Info, Layers } from 'lucide-react';
+import { Map as MapIcon, Compass, Navigation, Info, Layers } from 'lucide-react';
+
 import MapView from '../components/MapView';
-import { useApp, PARKWAY_WEST } from '../context/AppContext';
+import { useApp } from '../context/AppContext';
 import { MISSOURI_SCHOOLS } from '../data/missouriSchools';
 import { EXAMPLE_ITEMS } from '../data/exampleItems';
 import { useNavigate } from 'react-router-dom';
-import PrecisionNavigator from '../components/PrecisionNavigator';
 
 const SpatialMap = () => {
     const { state, dispatch } = useApp();
     const navigate = useNavigate();
     const [selectedItem, setSelectedItem] = useState(null);
-    const [mapMode, setMapMode] = useState('street'); // 'street' or '3d'
+    const [mapMode, setMapMode] = useState('street');
+
+    const previewItem = selectedItem || state.mapView?.selectedItem || null;
+
+    const clearPreview = () => {
+        setSelectedItem(null);
+        if (state.mapView) {
+            dispatch({ type: 'CLEAR_MAP_VIEW' });
+        }
+    };
 
     if (!state.user) {
         return (
@@ -33,8 +42,7 @@ const SpatialMap = () => {
 
     const userSchool = MISSOURI_SCHOOLS.find(s => s.id === state.user.schoolId);
     
-    // Intercept items during render to overcome Vite HMR preserving stale Reducer state across saves.
-    // We strictly map any demo items to our newly calculated pinpoint coordinates to assure they hover the school perfectly.
+    // Demo item coords override stale values left over from hot reload.
     const schoolItems = state.items.filter(item => item.schoolId === state.user.schoolId).map(item => {
         const freshDemoItem = EXAMPLE_ITEMS.find(e => e.id === item.id || e.title === item.title);
         if (freshDemoItem) {
@@ -43,7 +51,7 @@ const SpatialMap = () => {
         return item;
     });
 
-    // If there is an active navigation item, we shouldn't show the basic HUD, we show the real navigator.
+    // Hide the item card while turn-by-turn navigation is running.
     const isNavigating = !!state.activeItem;
 
     return (
@@ -86,19 +94,9 @@ const SpatialMap = () => {
                     </button>
                 </div>
 
-                {/* Google Maps Style Routing Sidebar */}
+                {/* Item detail card before directions start */}
                 <AnimatePresence>
-                    {isNavigating && (
-                        <PrecisionNavigator
-                            target={state.activeItem}
-                            onArrival={() => dispatch({ type: 'STOP_NAVIGATION' })}
-                        />
-                    )}
-                </AnimatePresence>
-
-                {/* Bottom Action HUD (Only shown if NOT navigating and an item IS selected) */}
-                <AnimatePresence>
-                    {selectedItem && !isNavigating && (
+                    {previewItem && !isNavigating && (
                         <motion.div
                             initial={{ opacity: 0, y: 50, x: '-50%' }}
                             animate={{ opacity: 1, y: 0, x: '-50%' }}
@@ -106,17 +104,17 @@ const SpatialMap = () => {
                             className="item-preview-hud glass"
                         >
                             <div className="h-left">
-                                <div className={`h-badge ${selectedItem.type}`}>{selectedItem.type.toUpperCase()}</div>
+                                <div className={`h-badge ${previewItem.type}`}>{previewItem.type.toUpperCase()}</div>
                                 <div className="h-main">
-                                    <h2>{selectedItem.title}</h2>
-                                    <p>{selectedItem.location}</p>
+                                    <h2>{previewItem.title}</h2>
+                                    <p>{previewItem.location}</p>
                                 </div>
                             </div>
                             <div className="h-right">
-                                <button className="btn-ghost" onClick={() => setSelectedItem(null)}>Close</button>
+                                <button className="btn-ghost" onClick={clearPreview}>Close</button>
                                 <button className="btn-primary" onClick={() => {
-                                    dispatch({ type: 'START_NAVIGATION', payload: selectedItem });
-                                    setSelectedItem(null); // Hide this HUD
+                                    dispatch({ type: 'START_NAVIGATION', payload: previewItem });
+                                    clearPreview();
                                 }}>
                                     <Navigation size={18} /> Directions
                                 </button>
@@ -125,7 +123,7 @@ const SpatialMap = () => {
                     )}
                 </AnimatePresence>
 
-                {!selectedItem && !isNavigating && (
+                {!previewItem && !isNavigating && (
                     <div className="map-hint glass animate-fade">
                         <Info size={16} /> Tap a marker on the map to view item details and start navigation.
                     </div>

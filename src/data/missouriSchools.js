@@ -1,5 +1,4 @@
-// Parkway West High School — hardcoded school data. No need for a full
-// Missouri schools list anymore since this app is only for West High.
+// School settings for Parkway West. This app only supports one campus.
 
 export const PARKWAY_WEST = {
   id: 'parkway-west',
@@ -45,6 +44,5 @@ export const PARKWAY_WEST = {
   ],
 };
 
-// keeping this export so old code that imports MISSOURI_SCHOOLS from context
-// wont completely break while we're in the middle of the refactor
+// Single-school list kept for imports that still reference MISSOURI_SCHOOLS.
 export const MISSOURI_SCHOOLS = [PARKWAY_WEST];

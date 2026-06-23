@@ -1,0 +1,23 @@
+// Campus location names and coordinates for the report form picker.
+export const CAMPUS_LOCATIONS = [
+  { name: 'Main Office', coords: [38.6230, -90.5350] },
+  { name: 'Commons / Cafeteria', coords: [38.6226, -90.5345] },
+  { name: 'Library', coords: [38.6232, -90.5342] },
+  { name: 'Gym (Main)', coords: [38.6224, -90.5355] },
+  { name: 'Gym (Auxiliary)', coords: [38.6222, -90.5358] },
+  { name: 'A-Hall', coords: [38.6231, -90.5340] },
+  { name: 'B-Hall', coords: [38.6233, -90.5338] },
+  { name: 'C-Hall', coords: [38.6235, -90.5336] },
+  { name: 'D-Hall', coords: [38.6237, -90.5334] },
+  { name: 'E-Hall', coords: [38.6239, -90.5332] },
+  { name: 'Fine Arts Wing', coords: [38.6234, -90.5330] },
+  { name: 'Science Wing', coords: [38.6236, -90.5328] },
+  { name: 'Parking Lot A', coords: [38.6220, -90.5348] },
+  { name: 'Parking Lot B', coords: [38.6218, -90.5344] },
+  { name: 'Auditorium', coords: [38.6228, -90.5356] },
+  { name: 'Band Room', coords: [38.6226, -90.5358] },
+  { name: 'Counseling Office', coords: [38.6230, -90.5344] },
+  { name: 'Student Entrance', coords: [38.6222, -90.5350] },
+  { name: 'Weight Room', coords: [38.6220, -90.5357] },
+  { name: 'Pool / Natatorium', coords: [38.6219, -90.5360] },
+];

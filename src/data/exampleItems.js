@@ -1,4 +1,4 @@
-// File automatically synced from Supabase database
+// Demo items loaded when Supabase is offline or unreachable.
 export const EXAMPLE_ITEMS = [
   {
     id: 'ex-001',

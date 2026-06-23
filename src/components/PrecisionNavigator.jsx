@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Navigation, CheckCircle2, Volume2, VolumeX, X, MapPin, AlertCircle } from 'lucide-react';
+import { Navigation, CheckCircle2, Volume2, VolumeX, X, AlertCircle } from 'lucide-react';
+
 import { useApp } from '../context/AppContext';
+import { fetchWalkingRoute } from '../services/routingService';
+import { formatDistanceFeet, formatDuration } from '../utilities/geo';
 
 const PrecisionNavigator = ({ target }) => {
     const { state, dispatch } = useApp();
@@ -58,9 +61,7 @@ const PrecisionNavigator = ({ target }) => {
                 return;
             }
 
-            // Use current location or fall back to school center
             const userLoc = state.myLocation || [38.6228, -90.5347];
-            const [uLat, uLng] = userLoc;
             const [tLat, tLng] = target.coords;
 
             setRouteLoading(true);
@@ -69,52 +70,18 @@ const PrecisionNavigator = ({ target }) => {
             setDirectionInstruction('Preparing...');
 
             try {
-                // Use OSRM with 8 second timeout
-                const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 8000);
-
-                const res = await fetch(
-                    `https://router.project-osrm.org/route/v1/foot/${uLng},${uLat};${tLng},${tLat}?geometries=geojson&steps=true&overview=full`,
-                    { signal: controller.signal }
-                );
-                clearTimeout(timeout);
-
-                const data = await res.json();
+                const route = await fetchWalkingRoute(userLoc, target.coords);
 
                 if (cancelled) return;
 
-                if (data.routes && data.routes.length > 0) {
-                    const route = data.routes[0];
-                    const steps = route.legs[0].steps;
-
-                    setRouteGeometry(route.geometry.coordinates);
-                    setRouteSteps(steps);
-                    setRouteLoading(false);
-                    dispatch({ type: 'SET_ACTIVE_ROUTE', payload: route.geometry.coordinates });
-                } else {
-                    // Fallback: try driving profile
-                    const res2 = await fetch(
-                        `https://router.project-osrm.org/route/v1/driving/${uLng},${uLat};${tLng},${tLat}?geometries=geojson&steps=true&overview=full`
-                    );
-                    const data2 = await res2.json();
-
-                    if (cancelled) return;
-
-                    if (data2.routes && data2.routes.length > 0) {
-                        const route = data2.routes[0];
-                        const steps = route.legs[0].steps;
-                        setRouteGeometry(route.geometry.coordinates);
-                        setRouteSteps(steps);
-                        setRouteLoading(false);
-                        dispatch({ type: 'SET_ACTIVE_ROUTE', payload: route.geometry.coordinates });
-                    } else {
-                        setRouteError('Could not calculate route. Navigate directly to the pin on the map.');
-                        setRouteLoading(false);
-                    }
-                }
+                const steps = route.legs[0].steps;
+                setRouteGeometry(route.geometry.coordinates);
+                setRouteSteps(steps);
+                setRouteLoading(false);
+                dispatch({ type: 'SET_ACTIVE_ROUTE', payload: route.geometry.coordinates });
             } catch (error) {
                 if (cancelled) return;
-                console.error("Routing Error:", error);
+                console.error('Routing Error:', error);
 
                 if (error.name === 'AbortError') {
                     setRouteError('Route calculation timed out. Navigate directly using the pin on the map.');
@@ -123,7 +90,7 @@ const PrecisionNavigator = ({ target }) => {
                 }
                 setRouteLoading(false);
 
-                // Still show direct distance as fallback
+                const [uLat, uLng] = userLoc;
                 const dx = (tLat - uLat) * 364567;
                 const dy = (tLng - uLng) * 284483;
                 const directDist = Math.sqrt(dx * dx + dy * dy);
@@ -270,28 +237,9 @@ const PrecisionNavigator = ({ target }) => {
     };
 
     const etaSeconds = Math.max(0, Math.floor(Number(distance) / 4));
-    const progressPercent = initialDistance ? Math.max(0, Math.min(100, 100 - ((Number(distance) / initialDistance) * 100))) : 0;
-
-    const formatDistance = (feetStr) => {
-        const ft = Number(feetStr);
-        if (isNaN(ft)) return '—';
-        if (ft >= 5280) {
-            return `${(ft / 5280).toFixed(1)} mi`;
-        }
-        return `${Math.round(ft)} ft`;
-    };
-
-    const formatTime = (seconds) => {
-        if (isNaN(seconds) || seconds < 0) return '—';
-        if (seconds < 60) return '< 1 min';
-        const mins = Math.ceil(seconds / 60);
-        if (mins >= 60) {
-            const hrs = Math.floor(mins / 60);
-            const remainingMins = mins % 60;
-            return remainingMins > 0 ? `${hrs} hr ${remainingMins} min` : `${hrs} hr`;
-        }
-        return `${mins} min`;
-    };
+    const progressPercent = initialDistance
+        ? Math.max(0, Math.min(100, 100 - ((Number(distance) / initialDistance) * 100)))
+        : 0;
 
     return (
         <div
@@ -342,11 +290,11 @@ const PrecisionNavigator = ({ target }) => {
                     <>
                         <div className="nav-stats">
                             <div className="n-stat">
-                                <strong>{routeLoading ? '—' : formatDistance(distance)}</strong>
+                                <strong>{routeLoading ? '—' : formatDistanceFeet(distance)}</strong>
                                 <span>Remaining</span>
                             </div>
                             <div className="n-stat">
-                                <strong>{routeLoading ? '—' : formatTime(etaSeconds)}</strong>
+                                <strong>{routeLoading ? '—' : formatDuration(etaSeconds)}</strong>
                                 <span>ETA</span>
                             </div>
                         </div>

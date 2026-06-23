@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
+
 import Home from './pages/Home';
 import Registry from './pages/Registry';
 import Dashboard from './pages/Dashboard';
@@ -15,19 +16,16 @@ import Navbar from './components/Navbar';
 import PrecisionNavigator from './components/PrecisionNavigator';
 import { AppProvider, useApp } from './context/AppContext';
 
-// top-level wrapper keeps routing inside the provider
-const App = () => {
-  return (
-    <AppProvider>
-      <Router>
-        <AppContent />
-      </Router>
-    </AppProvider>
-  );
-};
+const App = () => (
+  <AppProvider>
+    <Router>
+      <AppContent />
+    </Router>
+  </AppProvider>
+);
 
 const AppContent = () => {
-  const { state, dispatch } = useApp();
+  const { state } = useApp();
   const location = useLocation();
 
   return (
@@ -36,19 +34,16 @@ const AppContent = () => {
 
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
-          {/* Public routes */}
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/auth" element={<Auth />} />
 
-          {/* Auth-protected routes */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/registry" element={<Registry />} />
           <Route path="/report" element={<Report />} />
           <Route path="/map" element={<SpatialMap />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
 
-          {/* Admin only */}
           <Route
             path="/admin"
             element={
@@ -58,18 +53,13 @@ const AppContent = () => {
             }
           />
 
-          {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AnimatePresence>
 
-      {/* Global navigation overlay (rendered on top of everything) */}
       <AnimatePresence>
         {state.activeItem && (
-          <PrecisionNavigator
-            target={state.activeItem}
-            onArrival={() => dispatch({ type: 'STOP_NAVIGATION' })}
-          />
+          <PrecisionNavigator target={state.activeItem} />
         )}
       </AnimatePresence>
     </div>

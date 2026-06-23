@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Shield, Mail, ArrowRight, AlertTriangle, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { useApp, PARKWAY_WEST } from '../context/AppContext';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../services/supabase';
 
 const Auth = () => {
   const { dispatch } = useApp();

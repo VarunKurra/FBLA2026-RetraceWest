@@ -5,32 +5,15 @@ import {
     Camera, Info, CheckCircle2, CheckCircle,
     Trophy, ChevronRight, ArrowRight, X
 } from 'lucide-react';
-import { useApp, PARKWAY_WEST } from '../context/AppContext';
+import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import MapView from '../components/MapView';
-
-const CAMPUS_LOCATIONS = [
-    { name: 'Main Office',          coords: [38.6230, -90.5350] },
-    { name: 'Commons / Cafeteria',  coords: [38.6226, -90.5345] },
-    { name: 'Library',              coords: [38.6232, -90.5342] },
-    { name: 'Gym (Main)',           coords: [38.6224, -90.5355] },
-    { name: 'Gym (Auxiliary)',      coords: [38.6222, -90.5358] },
-    { name: 'A-Hall',               coords: [38.6231, -90.5340] },
-    { name: 'B-Hall',               coords: [38.6233, -90.5338] },
-    { name: 'C-Hall',               coords: [38.6235, -90.5336] },
-    { name: 'D-Hall',               coords: [38.6237, -90.5334] },
-    { name: 'E-Hall',               coords: [38.6239, -90.5332] },
-    { name: 'Fine Arts Wing',       coords: [38.6234, -90.5330] },
-    { name: 'Science Wing',         coords: [38.6236, -90.5328] },
-    { name: 'Parking Lot A',        coords: [38.6220, -90.5348] },
-    { name: 'Parking Lot B',        coords: [38.6218, -90.5344] },
-    { name: 'Auditorium',           coords: [38.6228, -90.5356] },
-    { name: 'Band Room',            coords: [38.6226, -90.5358] },
-    { name: 'Counseling Office',    coords: [38.6230, -90.5344] },
-    { name: 'Student Entrance',     coords: [38.6222, -90.5350] },
-    { name: 'Weight Room',          coords: [38.6220, -90.5357] },
-    { name: 'Pool / Natatorium',    coords: [38.6219, -90.5360] },
-];
+import { CAMPUS_LOCATIONS } from '../constants/campusLocations';
+import { REPORT_CATEGORIES } from '../constants/categories';
+import { processReportImage } from '../utilities/imageUtils';
+import { mapAppItemToDbRow } from '../utilities/itemMapper';
+import { insertItem } from '../services/itemService';
+import { uploadItemImage } from '../services/storageService';
 
 const Report = () => {
     const { state, dispatch } = useApp();
@@ -87,28 +70,7 @@ const Report = () => {
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        if (file.size > 500 * 1024) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const img = new Image();
-            img.onload = () => {
-                const maxDim = 800;
-                let w = img.width, h = img.height;
-                if (w > maxDim || h > maxDim) {
-                    if (w > h) { h = (h / w) * maxDim; w = maxDim; }
-                    else { w = (w / h) * maxDim; h = maxDim; }
-                }
-                canvas.width = w;
-                canvas.height = h;
-                ctx.drawImage(img, 0, 0, w, h);
-                setImage(canvas.toDataURL('image/jpeg', 0.6));
-            };
-            img.src = URL.createObjectURL(file);
-        } else {
-            const reader = new FileReader();
-            reader.onloadend = () => setImage(reader.result);
-            reader.readAsDataURL(file);
-        }
+        processReportImage(file, setImage);
     };
 
     const handleSubmit = async () => {
@@ -155,60 +117,19 @@ const Report = () => {
         setSubmitting(false);
         setSubmitted(true);
 
-        // Try to persist to Supabase in the background (fire-and-forget)
+        // Write to Supabase after the local update so the UI stays fast.
         try {
-            const { supabase } = await import('../supabaseClient');
-            
             let imageUrl = null;
             if (image) {
-                // Convert base64 to blob and upload to Storage
                 try {
-                    const res = await fetch(image);
-                    const blob = await res.blob();
-                    const fileName = `item_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
-                    
-                    const { data: uploadData, error: uploadError } = await supabase.storage
-                        .from('item-images')
-                        .upload(fileName, blob, { contentType: 'image/jpeg' });
-                        
-                    if (!uploadError && uploadData) {
-                        const { data: { publicUrl } } = supabase.storage
-                            .from('item-images')
-                            .getPublicUrl(uploadData.path);
-                        imageUrl = publicUrl;
-                    } else {
-                        console.error('Storage upload error:', uploadError);
-                    }
+                    imageUrl = await uploadItemImage(image);
                 } catch (imgErr) {
-                    console.warn('Image processing failed:', imgErr);
+                    console.warn('Image upload failed:', imgErr);
                 }
             }
 
-            const dbItem = {
-                id: localItem.id,
-                schoolid: 'parkway-west',
-                type: localItem.type,
-                title: localItem.title,
-                category: localItem.category,
-                location: localItem.location,
-                location_name: localItem.location_name,
-                coords: localItem.coords,
-                description: localItem.description,
-                reporter: localItem.reporter,
-                reporter_id: localItem.reporter_id,
-                status: localItem.status,
-                timestamp: Date.now(),
-                created_at: new Date().toISOString(),
-                image_url: imageUrl
-            };
-
-            // Use a promise race with an 8 second timeout
-            await Promise.race([
-                supabase.from('items').insert([dbItem]),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
-            ]);
+            await insertItem(mapAppItemToDbRow(localItem, imageUrl));
         } catch (err) {
-            // Silently fail — item is already in local state
             console.log('Background DB insert skipped:', err.message || err);
         }
     };
@@ -279,7 +200,9 @@ const Report = () => {
                             <div className="rp-field">
                                 <label>Category</label>
                                 <select value={category} onChange={e => setCategory(e.target.value)}>
-                                    <option>Electronics</option><option>Clothing</option><option>Accessories</option><option>School Supplies</option><option>Keys / IDs</option><option>Jewelry</option><option>Other</option>
+                                    {REPORT_CATEGORIES.map(option => (
+                                        <option key={option}>{option}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="rp-field">
