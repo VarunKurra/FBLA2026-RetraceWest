@@ -158,15 +158,54 @@ const Report = () => {
         // Try to persist to Supabase in the background (fire-and-forget)
         try {
             const { supabase } = await import('../supabaseClient');
-            const dbItem = { ...localItem };
-            delete dbItem.image; // Don't send base64 to DB
-            delete dbItem.timestamp;
-            delete dbItem.schoolId;
+            
+            let imageUrl = null;
+            if (image) {
+                // Convert base64 to blob and upload to Storage
+                try {
+                    const res = await fetch(image);
+                    const blob = await res.blob();
+                    const fileName = `item_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+                    
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('item-images')
+                        .upload(fileName, blob, { contentType: 'image/jpeg' });
+                        
+                    if (!uploadError && uploadData) {
+                        const { data: { publicUrl } } = supabase.storage
+                            .from('item-images')
+                            .getPublicUrl(uploadData.path);
+                        imageUrl = publicUrl;
+                    } else {
+                        console.error('Storage upload error:', uploadError);
+                    }
+                } catch (imgErr) {
+                    console.warn('Image processing failed:', imgErr);
+                }
+            }
 
-            // Use a promise race with a 4 second timeout
+            const dbItem = {
+                id: localItem.id,
+                schoolid: 'parkway-west',
+                type: localItem.type,
+                title: localItem.title,
+                category: localItem.category,
+                location: localItem.location,
+                location_name: localItem.location_name,
+                coords: localItem.coords,
+                description: localItem.description,
+                reporter: localItem.reporter,
+                reporter_id: localItem.reporter_id,
+                status: localItem.status,
+                timestamp: Date.now(),
+                created_at: new Date().toISOString(),
+                image_url: imageUrl
+            };
+
+            // Use a promise race with an 8 second timeout
             await Promise.race([
                 supabase.from('items').insert([dbItem]),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
             ]);
         } catch (err) {
             // Silently fail — item is already in local state

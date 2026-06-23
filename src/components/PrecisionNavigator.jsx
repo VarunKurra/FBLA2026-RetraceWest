@@ -269,8 +269,29 @@ const PrecisionNavigator = ({ target }) => {
         dispatch({ type: 'STOP_NAVIGATION' });
     };
 
-    const etaSeconds = Math.max(0, Math.floor(distance / 4));
-    const progressPercent = initialDistance ? Math.max(0, Math.min(100, 100 - ((distance / initialDistance) * 100))) : 0;
+    const etaSeconds = Math.max(0, Math.floor(Number(distance) / 4));
+    const progressPercent = initialDistance ? Math.max(0, Math.min(100, 100 - ((Number(distance) / initialDistance) * 100))) : 0;
+
+    const formatDistance = (feetStr) => {
+        const ft = Number(feetStr);
+        if (isNaN(ft)) return '—';
+        if (ft >= 5280) {
+            return `${(ft / 5280).toFixed(1)} mi`;
+        }
+        return `${Math.round(ft)} ft`;
+    };
+
+    const formatTime = (seconds) => {
+        if (isNaN(seconds) || seconds < 0) return '—';
+        if (seconds < 60) return '< 1 min';
+        const mins = Math.ceil(seconds / 60);
+        if (mins >= 60) {
+            const hrs = Math.floor(mins / 60);
+            const remainingMins = mins % 60;
+            return remainingMins > 0 ? `${hrs} hr ${remainingMins} min` : `${hrs} hr`;
+        }
+        return `${mins} min`;
+    };
 
     return (
         <div
@@ -321,11 +342,11 @@ const PrecisionNavigator = ({ target }) => {
                     <>
                         <div className="nav-stats">
                             <div className="n-stat">
-                                <strong>{routeLoading ? '—' : `${distance} ft`}</strong>
+                                <strong>{routeLoading ? '—' : formatDistance(distance)}</strong>
                                 <span>Remaining</span>
                             </div>
                             <div className="n-stat">
-                                <strong>{routeLoading ? '—' : `${Math.ceil(etaSeconds / 60)} min`}</strong>
+                                <strong>{routeLoading ? '—' : formatTime(etaSeconds)}</strong>
                                 <span>ETA</span>
                             </div>
                         </div>

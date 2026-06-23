@@ -5,7 +5,7 @@ import { EXAMPLE_ITEMS } from '../data/exampleItems';
 const AppContext = createContext();
 
 // local storage key -- bumped version since schema changed
-const PERSIST_KEY = 'trackback_pw_v4_state';
+const PERSIST_KEY = 'trackback_pw_v5_state';
 
 const getInitialState = () => {
   const defaultState = {
@@ -23,8 +23,11 @@ const getInitialState = () => {
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
-      // merge stored items with defaults, avoiding duplicates
-      const fetched = parsed.items || [];
+      // ONLY load stored items if their ID is in example items, 
+      // ensuring all stale manual offline entries (which start with "it-") are immediately dumped.
+      // Valid Supabase entries will just be dynamically fetched anyway on launch!
+      const fetched = (parsed.items || []).filter(item => item.id.startsWith('ex-'));
+      
       const existingIds = new Set(fetched.map(i => i.id));
       const merged = [
         ...fetched,
@@ -213,7 +216,13 @@ export const AppProvider = ({ children }) => {
       // fetch items from database
       supabase.from('items').select('*').order('created_at', { ascending: false }).then(({ data, error }) => {
         if (!error && data && data.length > 0 && mounted) {
-          dispatch({ type: 'SET_ITEMS', payload: data });
+          const mappedData = data.map(item => ({
+            ...item,
+            image: item.image_url || null,
+            schoolId: item.schoolid || 'parkway-west',
+            timestamp: item.timestamp ? Number(item.timestamp) : new Date(item.created_at).getTime(),
+          }));
+          dispatch({ type: 'SET_ITEMS', payload: mappedData });
         } else if (error) {
           console.warn('Could not load items from Supabase, using local demo data:', error.message);
         }

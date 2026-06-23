@@ -251,9 +251,12 @@ ${JSON.stringify(itemSummaries)}`
         filteredItems.sort((a, b) => getRawDistance(a.coords) - getRawDistance(b.coords));
     } else if (sortBy === 'Farthest') {
         filteredItems.sort((a, b) => getRawDistance(b.coords) - getRawDistance(a.coords));
+    } else if (aiRankedIds === null) {
+        // Default: alphabetical by title when no AI search is active
+        filteredItems.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
     }
 
-    const categories = ['All', 'Electronics', 'Jewelry', 'Pets', 'Documents', 'Accessories', 'Other'];
+    const categories = ['All', 'Electronics', 'Jewelry', 'Documents', 'Accessories', 'Other'];
 
     return (
         <div className="reg-v5 page-wrapper">
