@@ -13,6 +13,7 @@ dist-ssr
 *.local
 .vercel
 .env
+lint_output.txt
 
 # Editor directories and files
 .vscode/*
@@ -28,4 +29,4 @@ dist-ssr
 
 # Local dev / one-off scripts
 .expo/
-fixDuplicates.js
+scripts/fixDuplicates.js

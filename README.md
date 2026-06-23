@@ -1,5 +1,5 @@
 # RetraceWest
-![RetraceWest Screenshot](./Asset-Logo.png)
+![RetraceWest Screenshot](./public/Asset-Logo.png)
 
 **RetraceWest** is a comprehensive lost-and-found management platform designed for Parkway West High School, aimed at modernizing and securing the process of reporting, discovering, and reclaiming lost items. This application was developed as a submission for the FBLA 2026 event.
 
@@ -61,8 +61,8 @@ The platform connects students who have lost items with those who have found the
 1.  **Clone the Repository**
     Open your terminal and clone the repository locally:
     ```bash
-    git clone https://github.com/VarunKurra/FBLA2026.git
-    cd FBLA2026
+    git clone https://github.com/VarunKurra/FBLA2026-RetraceWest.git
+    cd FBLA2026-RetraceWest
     ```
 
 2.  **Install Dependencies**
@@ -85,6 +85,26 @@ The platform connects students who have lost items with those who have found the
     npm run dev
     ```
     Navigate to `http://localhost:5173/` in your browser to view RetraceWest.
+
+## Project Structure
+
+```
+├── public/          Static assets served by Vite
+├── src/
+│   ├── components/  Reusable UI (map, navbar, navigator)
+│   ├── pages/       Route screens
+│   ├── context/     Global app state
+│   ├── services/    Supabase, AI, routing, and storage calls
+│   ├── utilities/   Shared helpers (geo, images, data mapping)
+│   ├── constants/   Categories and campus location data
+│   └── data/        Demo items and school config
+├── docs/            Additional project documentation
+├── scripts/         Dev and maintenance scripts
+├── LICENSE          MIT license
+└── README.md
+```
+
+More detail is in `docs/Project_Overview.md`.
 
 ## FBLA Development & Evaluation Criteria
 
