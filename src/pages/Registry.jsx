@@ -169,7 +169,7 @@ const Registry = () => {
     return (
         <div className="reg-v5 page-wrapper">
             <div className="container">
-                <header className="reg-header-v5">
+                <header className="reg-header-v5" aria-label="Registry search and filters">
                     <div className="header-txt">
                         <motion.div
                             initial={{ opacity: 0, x: -20 }}
@@ -178,19 +178,24 @@ const Registry = () => {
                         >
                             RetraceWest: Active Network
                         </motion.div>
-                        <h1>Campus Recovery Inventory</h1>
+                        <h1 id="registry-heading">Campus Recovery Inventory</h1>
                         <p>AI-powered search across verified campus reports. Type a description and press Enter.</p>
                     </div>
 
-                    <div className="reg-controls glass">
+                    <div className="reg-controls glass" role="search" aria-labelledby="registry-heading">
                         <div className="search-bar">
-                            <Search size={18} />
+                            <Search size={18} aria-hidden="true" />
+                            <label htmlFor="registry-search" className="sr-only">
+                                Search lost and found items by description
+                            </label>
                             <input
-                                type="text"
+                                id="registry-search"
+                                type="search"
                                 placeholder="Describe your lost item... (e.g. 'blue jacket' or 'calculator')"
                                 value={searchTerm}
                                 onChange={handleSearchChange}
                                 onKeyDown={handleSearchKeyDown}
+                                aria-label="Search lost and found items by description"
                             />
                         </div>
 
@@ -199,14 +204,20 @@ const Registry = () => {
                                 className={`ai-search-btn-v5 ${aiSearching ? 'active' : ''}`}
                                 onClick={() => handleAiSearch()}
                                 disabled={aiSearching || !searchTerm.trim()}
+                                aria-label={aiSearching ? 'Searching items' : 'Run AI search on your description'}
                             >
-                                <Sparkles size={18} />
+                                <Sparkles size={18} aria-hidden="true" />
                                 <span>{aiSearching ? 'Searching...' : 'Neural Search'}</span>
                             </button>
 
                             <div className="filter-wrapper" style={{ position: 'relative' }}>
-                                <button className="filter-trigger-v5" onClick={() => setIsFilterOpen(!isFilterOpen)}>
-                                    <Filter size={18} /> Filters
+                                <button
+                                    className="filter-trigger-v5"
+                                    onClick={() => setIsFilterOpen(!isFilterOpen)}
+                                    aria-label="Open registry filters"
+                                    aria-expanded={isFilterOpen}
+                                >
+                                    <Filter size={18} aria-hidden="true" /> Filters
                                 </button>
                                 <AnimatePresence>
                                     {isFilterOpen && (
@@ -264,12 +275,14 @@ const Registry = () => {
                         </motion.div>
                     )}
 
-                    <div className="cat-scroll-v5">
+                    <div className="cat-scroll-v5" role="toolbar" aria-label="Filter by category">
                         {categories.map(cat => (
                             <button
                                 key={cat}
                                 className={`cat-btn-v5 ${activeCategory === cat ? 'active' : ''}`}
                                 onClick={() => setActiveCategory(cat)}
+                                aria-label={`Show ${cat} items`}
+                                aria-pressed={activeCategory === cat}
                             >
                                 {cat}
                             </button>
@@ -277,12 +290,14 @@ const Registry = () => {
                     </div>
                 </header>
 
-                <div className="item-grid-v5">
+                <div className="item-grid-v5" role="list" aria-label="Lost and found items">
                     <AnimatePresence mode="popLayout">
                         {filteredItems.map((item, idx) => (
                             <motion.div
                                 layout
                                 key={item.id}
+                                role="listitem"
+                                aria-label={`${item.type} item: ${item.title}`}
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.9 }}
@@ -313,14 +328,14 @@ const Registry = () => {
                                             <Clock size={12} /> {new Date(item.created_at || item.timestamp).toLocaleDateString()}
                                         </div>
                                         <div className="btn-group-v5">
-                                            <button className="inquiry-trigger-v5" onClick={() => setInquiryItem(item)}>
-                                                <MessageSquare size={18} />
+                                            <button className="inquiry-trigger-v5" onClick={() => setInquiryItem(item)} aria-label={`Start claim inquiry for ${item.title}`}>
+                                                <MessageSquare size={18} aria-hidden="true" />
                                             </button>
                                             <button className="navigate-trigger-v5" onClick={() => {
                                                 dispatch({ type: 'SET_MAP_VIEW', payload: { center: item.coords, zoom: 18, selectedItem: item } });
                                                 navigate('/map');
-                                            }}>
-                                                Navigate <ArrowRight size={16} />
+                                            }} aria-label={`Navigate to ${item.title} on the campus map`}>
+                                                Navigate <ArrowRight size={16} aria-hidden="true" />
                                             </button>
                                         </div>
                                     </div>

@@ -245,13 +245,19 @@ const PrecisionNavigator = ({ target }) => {
         <div
             className="floating-navigator glass"
             style={{ animation: 'fadeUp 0.3s ease-out' }}
+            role="region"
+            aria-label="Walking directions"
         >
             <div className="nav-header">
-                <button className="icon-btn-ghost" onClick={handleLeave}>
-                    <X size={20} />
+                <button className="icon-btn-ghost" onClick={handleLeave} aria-label="Close navigation">
+                    <X size={20} aria-hidden="true" />
                 </button>
-                <button className="icon-btn-ghost" onClick={() => setIsMuted(!isMuted)}>
-                    {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                <button
+                    className="icon-btn-ghost"
+                    onClick={() => setIsMuted(!isMuted)}
+                    aria-label={isMuted ? 'Unmute voice directions' : 'Mute voice directions'}
+                >
+                  {isMuted ? <VolumeX size={20} aria-hidden="true" /> : <Volume2 size={20} aria-hidden="true" />}
                 </button>
             </div>
 
@@ -306,10 +312,10 @@ const PrecisionNavigator = ({ target }) => {
                     </>
                 ) : (
                     <div className="arrival-actions animate-fade">
-                        <button className="btn-success full-width" onClick={handleClaim}>
-                            <CheckCircle2 size={18} /> Claim Lost Item
+                        <button className="btn-success full-width" onClick={handleClaim} aria-label={`Claim ${target.title}`}>
+                            <CheckCircle2 size={18} aria-hidden="true" /> Claim Lost Item
                         </button>
-                        <button className="btn-ghost full-width mt-2" onClick={handleLeave}>
+                        <button className="btn-ghost full-width mt-2" onClick={handleLeave} aria-label="Leave item at this location">
                             Leave it here
                         </button>
                     </div>

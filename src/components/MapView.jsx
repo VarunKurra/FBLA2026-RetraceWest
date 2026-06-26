@@ -62,7 +62,7 @@ const MapView = ({
 
     if (!enable3D) {
       if (tileset3D) {
-        try { viewer.scene.primitives.remove(tileset3D); } catch (_) {}
+        try { viewer.scene.primitives.remove(tileset3D); } catch { /* tileset may already be removed */ }
         setTileset3D(null);
         tilesetLoadedRef.current = false;
       }

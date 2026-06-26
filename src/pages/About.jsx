@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Target, CheckCircle, ShieldCheck, Github, Linkedin, Mail } from 'lucide-react';
-import varunImg from '../assets/VarunKurra.png';
-import aviralImg from '../assets/AviralPandey.png';
-import sreehanImg from '../assets/SreehanMandapati.png';
+import varunImg from '../assets/VarunKurra.jpg';
+import aviralImg from '../assets/AviralPandey.jpg';
+import sreehanImg from '../assets/SreehanMandapati.jpg';
 
 const FOUNDERS = [
   {
@@ -16,16 +16,16 @@ const FOUNDERS = [
   {
     name: 'Aviral Pandey',
     grade: 'Class of 2026',
-    role: 'Product Strategy & UI/UX',
+    role: 'Systems Architect',
     imgUrl: aviralImg,
-    bio: 'Defined user interaction cycles, designed the administrative dashboards, and researched student adoption strategies.'
+    bio: 'Designed the backend architecture, database schema, and Supabase integration, and wired together auth, storage, and real-time item sync across the app.',
   },
   {
     name: 'Sreehan Mandapati',
     grade: 'Class of 2026',
-    role: 'Data Analysis & Research',
+    role: 'Product Strategy & UI/UX',
     imgUrl: sreehanImg,
-    bio: 'Tracked loss zones across facilities and developed the foundational Good Samaritan incentivization system.'
+    bio: 'Defined user interaction cycles, designed the administrative dashboards, and researched student adoption strategies.',
   },
 ];
 

@@ -51,12 +51,15 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="navbar-pw">
-        {/* 3-column grid: brand | links | controls */}
+      <nav className="navbar-pw" aria-label="Main navigation">
         <div className="navbar-inner">
 
-          {/* ── Col 1: Brand ── */}
-          <Link to="/" className="nav-brand" onClick={() => setMobileOpen(false)}>
+          <Link
+            to="/"
+            className="nav-brand"
+            onClick={() => setMobileOpen(false)}
+            aria-label="RetraceWest home, Parkway West High School"
+          >
             <div className="nav-logo-box">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                    stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -70,20 +73,27 @@ const Navbar = () => {
             </div>
           </Link>
 
-          {/* ── Col 2: Nav Links (centered) ── */}
-          <div className="nav-links">
+          <div className="nav-links" role="list">
             {visibleLinks.map(link => (
               <Link
                 key={link.to}
                 to={link.to}
                 className={`nav-link ${isActive(link.to) ? 'active' : ''}`}
+                role="listitem"
+                aria-label={`Go to ${link.label}`}
+                aria-current={isActive(link.to) ? 'page' : undefined}
               >
                 <span className="nav-link-icon">{NAV_ICONS[link.to]}</span>
                 {link.label}
               </Link>
             ))}
             {state.user?.role === 'admin' && (
-              <Link to="/admin" className={`nav-link ${isActive('/admin') ? 'active' : ''}`}>
+              <Link
+                to="/admin"
+                className={`nav-link ${isActive('/admin') ? 'active' : ''}`}
+                aria-label="Go to Admin panel"
+                aria-current={isActive('/admin') ? 'page' : undefined}
+              >
                 <span className="nav-link-icon">{NAV_ICONS['/admin']}</span>
                 Admin
               </Link>
@@ -99,18 +109,31 @@ const Navbar = () => {
                     <Shield size={10} /> Admin
                   </div>
                 )}
-                <Link to="/leaderboard" className="nav-points-chip" style={{ textDecoration: 'none' }}>
-                  <Trophy size={13} />
+                <Link
+                  to="/leaderboard"
+                  className="nav-points-chip"
+                  style={{ textDecoration: 'none' }}
+                  aria-label={`Leaderboard, ${state.user.points ?? 0} points`}
+                >
+                  <Trophy size={13} aria-hidden="true" />
                   {state.user.points ?? 0} pts
                 </Link>
-                <button className="nav-sign-out" onClick={handleSignOut}>
+                <button className="nav-sign-out" onClick={handleSignOut} aria-label="Sign out">
                   Sign Out
                 </button>
               </>
             ) : (
-              <Link to="/auth" className="nav-sign-in">Sign In</Link>
+              <Link to="/auth" className="nav-sign-in" aria-label="Sign in to RetraceWest">
+                Sign In
+              </Link>
             )}
-            <button className="nav-mobile-btn" onClick={() => setMobileOpen(o => !o)} aria-label="Menu">
+            <button
+              className="nav-mobile-btn"
+              onClick={() => setMobileOpen(open => !open)}
+              aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-navigation-menu"
+            >
               {mobileOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
           </div>
@@ -118,8 +141,12 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Mobile drawer */}
-      <div className={`nav-mobile-menu ${mobileOpen ? 'open' : ''}`}>
+      <div
+        id="mobile-navigation-menu"
+        className={`nav-mobile-menu ${mobileOpen ? 'open' : ''}`}
+        aria-label="Mobile navigation"
+        aria-hidden={!mobileOpen}
+      >
         {visibleLinks.map(link => (
           <Link key={link.to} to={link.to} className="nav-mobile-link"
             onClick={() => setMobileOpen(false)}

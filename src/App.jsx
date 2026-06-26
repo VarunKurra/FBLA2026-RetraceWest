@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 
@@ -14,6 +14,8 @@ import Admin from './pages/Admin';
 
 import Navbar from './components/Navbar';
 import PrecisionNavigator from './components/PrecisionNavigator';
+import AssistButton from './components/AssistButton';
+import AssistAnnouncer from './components/AssistAnnouncer';
 import { AppProvider, useApp } from './context/AppContext';
 
 const App = () => (
@@ -28,34 +30,57 @@ const AppContent = () => {
   const { state } = useApp();
   const location = useLocation();
 
+  useEffect(() => {
+    if (!window.speechSynthesis) return undefined;
+
+    const loadVoices = () => window.speechSynthesis.getVoices();
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+
+    return () => {
+      if (window.speechSynthesis.onvoiceschanged === loadVoices) {
+        window.speechSynthesis.onvoiceschanged = null;
+      }
+    };
+  }, []);
+
   return (
     <div className="app-v5">
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+
       <Navbar />
+      <AssistAnnouncer />
 
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/auth" element={<Auth />} />
+      <main id="main-content" role="main" aria-label="RetraceWest main content">
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
+            <Route path="/" element={<Home />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/auth" element={<Auth />} />
 
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/registry" element={<Registry />} />
-          <Route path="/report" element={<Report />} />
-          <Route path="/map" element={<SpatialMap />} />
-          <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/registry" element={<Registry />} />
+            <Route path="/report" element={<Report />} />
+            <Route path="/map" element={<SpatialMap />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
 
-          <Route
-            path="/admin"
-            element={
-              state.user?.role === 'admin'
-                ? <Admin />
-                : <Navigate to="/dashboard" replace />
-            }
-          />
+            <Route
+              path="/admin"
+              element={
+                state.user?.role === 'admin'
+                  ? <Admin />
+                  : <Navigate to="/dashboard" replace />
+              }
+            />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AnimatePresence>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AnimatePresence>
+      </main>
+
+      <AssistButton />
 
       <AnimatePresence>
         {state.activeItem && (

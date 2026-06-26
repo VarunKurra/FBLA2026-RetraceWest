@@ -9,7 +9,6 @@ const Dashboard = () => {
   const { state } = useApp();
   const [claims, setClaims] = useState([]);
   const [recentFound, setRecentFound] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!state.user) return;
@@ -32,8 +31,6 @@ const Dashboard = () => {
         if (recentData) setRecentFound(recentData);
       } catch (err) {
         console.error('Dashboard fetch error:', err);
-      } finally {
-        setLoading(false);
       }
     };
     fetchData();

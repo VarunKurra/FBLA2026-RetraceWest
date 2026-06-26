@@ -25,16 +25,12 @@ const Home = () => {
 
   return (
     <div className="home-modern-auth">
-      
-      {/* ── SPLIT SHADCN HERO ── */}
-      <section className="split-hero">
+      <section className="split-hero" aria-labelledby="home-hero-heading">
         <div className="container">
           <motion.div className="sh-grid" initial="hidden" animate="visible" variants={fadeStagger}>
-            
-            {/* Left Content */}
             <div className="sh-text">
                <motion.div variants={fadeUp} className="hero-badge">OFFICIAL PARKWAY WEST APP</motion.div>
-               <motion.h1 variants={fadeUp} className="hero-h1">
+               <motion.h1 variants={fadeUp} className="hero-h1" id="home-hero-heading">
                  Lost it at<br/>
                  <span className="highlight-red">West High?</span><br/>
                  Find it here.
@@ -43,16 +39,16 @@ const Home = () => {
                  The cardboard box is gone. RetraceWest is the official, real-time digital lost & found designed for the massive Parkway West High School campus.
                </motion.p>
                
-               <motion.div variants={fadeUp} className="hero-actions">
+               <motion.div variants={fadeUp} className="hero-actions" role="group" aria-label="Primary actions">
                  {state.user ? (
                    <>
-                     <Link to="/registry" className="btn-modern btn-primary">Live Registry <ArrowRight size={18} /></Link>
-                     <Link to="/report" className="btn-modern btn-outline">Report Item</Link>
+                     <Link to="/registry" className="btn-modern btn-primary" aria-label="Open live registry">Live Registry <ArrowRight size={18} aria-hidden="true" /></Link>
+                     <Link to="/report" className="btn-modern btn-outline" aria-label="Report a lost or found item">Report Item</Link>
                    </>
                  ) : (
                    <>
-                     <Link to="/auth" className="btn-modern btn-primary">Sign in with Parkway <ArrowRight size={18} /></Link>
-                     <Link to="/about" className="btn-modern btn-outline">Learn More</Link>
+                     <Link to="/auth" className="btn-modern btn-primary" aria-label="Sign in with Parkway schools account">Sign in with Parkway <ArrowRight size={18} aria-hidden="true" /></Link>
+                     <Link to="/about" className="btn-modern btn-outline" aria-label="Learn more about RetraceWest">Learn More</Link>
                    </>
                  )}
                </motion.div>
@@ -74,8 +70,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* ── QUICK LINKS ── */}
-      <section className="ql-section">
+      <section className="ql-section" aria-label="Quick links">
         <div className="container">
           <motion.div 
              className="ql-grid"

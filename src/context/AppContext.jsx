@@ -17,6 +17,7 @@ const getInitialState = () => {
     activeRoute: null,
     mapView: null,
     voiceEnabled: true,
+    assistEnabled: false,
     captchaSolved: false,
     notifications: [],
   };
@@ -44,6 +45,7 @@ const getInitialState = () => {
       activeRoute: null,
       activeItem: null,
       mapView: null,
+      assistEnabled: false,
     };
   } catch (error) {
     console.warn('Failed to parse stored state, starting fresh', error.message);
@@ -168,6 +170,9 @@ function appReducer(state, action) {
     case 'TOGGLE_VOICE':
       return { ...state, voiceEnabled: !state.voiceEnabled };
 
+    case 'TOGGLE_ASSIST':
+      return { ...state, assistEnabled: action.payload ?? !state.assistEnabled };
+
     default:
       return state;
   }
@@ -251,5 +256,4 @@ export const AppProvider = ({ children }) => {
 
 export const useApp = () => useContext(AppContext);
 
-// eslint-disable-next-line react-refresh/only-export-components
 export { PARKWAY_WEST, MISSOURI_SCHOOLS };
