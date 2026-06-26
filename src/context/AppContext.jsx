@@ -2,15 +2,17 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { PARKWAY_WEST, MISSOURI_SCHOOLS } from '../data/missouriSchools';
 import { EXAMPLE_ITEMS } from '../data/exampleItems';
 import { fetchAllItems } from '../services/itemService';
-import { getCurrentSessionUser, subscribeToAuthChanges, signOutUser } from '../services/authService';
+import { getCurrentSessionUser, subscribeToAuthChanges, signOutUser, getLocalSessionUser } from '../services/authService';
 
 const AppContext = createContext();
 
 const PERSIST_KEY = 'trackback_pw_v5_state';
 
 const getInitialState = () => {
+  const localUser = getLocalSessionUser();
+
   const defaultState = {
-    user: null,
+    user: localUser,
     myLocation: PARKWAY_WEST.coords,
     items: EXAMPLE_ITEMS,
     activeItem: null,
@@ -39,6 +41,7 @@ const getInitialState = () => {
     return {
       ...defaultState,
       ...parsed,
+      user: localUser || parsed.user || null,
       items: mergedItems,
       myLocation: defaultState.myLocation,
       captchaSolved: false,

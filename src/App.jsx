@@ -17,6 +17,22 @@ import PrecisionNavigator from './components/PrecisionNavigator';
 import AssistButton from './components/AssistButton';
 import AssistAnnouncer from './components/AssistAnnouncer';
 import { AppProvider, useApp } from './context/AppContext';
+import { getLocalSessionUser } from './services/authService';
+
+const AdminRoute = () => {
+  const { state, dispatch } = useApp();
+
+  useEffect(() => {
+    const localUser = getLocalSessionUser();
+    if (localUser?.role === 'admin' && !state.user) {
+      dispatch({ type: 'LOGIN', payload: localUser });
+    }
+  }, [dispatch, state.user]);
+
+  const user = state.user || getLocalSessionUser();
+  if (user?.role === 'admin') return <Admin />;
+  return <Navigate to="/dashboard" replace />;
+};
 
 const App = () => (
   <AppProvider>
@@ -66,14 +82,7 @@ const AppContent = () => {
             <Route path="/map" element={<SpatialMap />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
 
-            <Route
-              path="/admin"
-              element={
-                state.user?.role === 'admin'
-                  ? <Admin />
-                  : <Navigate to="/dashboard" replace />
-              }
-            />
+            <Route path="/admin" element={<AdminRoute />} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

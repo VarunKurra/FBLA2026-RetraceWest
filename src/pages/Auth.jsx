@@ -10,6 +10,10 @@ import {
   isValidAdminPasscode,
   canBypassAuth,
   createBypassUser,
+  isBypassEmail,
+  resolvePortalRole,
+  persistLocalSession,
+  clearLocalSession,
 } from '../services/authService';
 
 const Auth = () => {
@@ -31,6 +35,7 @@ const Auth = () => {
   const [adminCode, setAdminCode] = useState('Parkway');
 
   const completeLogin = (user) => {
+    persistLocalSession(user);
     flushSync(() => {
       dispatch({ type: 'LOGIN', payload: user });
     });
@@ -38,6 +43,7 @@ const Auth = () => {
   };
 
   const finishLogin = async (authUser, portalRole = 'student') => {
+    clearLocalSession();
     const user = await getUserFromAuthUser(authUser, portalRole);
     completeLogin(user);
   };
@@ -49,10 +55,13 @@ const Auth = () => {
     setLoading(true);
 
     const normalizedEmail = email.trim().toLowerCase();
-    const portalRole = isAdminPortal ? 'admin' : 'student';
+    const portalRole = resolvePortalRole(normalizedEmail, isAdminPortal);
+    const bypassUser = canBypassAuth(normalizedEmail, portalRole) && password.length >= 6
+      ? createBypassUser(normalizedEmail, portalRole)
+      : null;
 
     try {
-      if (!isAdminPortal && !normalizedEmail.endsWith('@parkwayschools.net')) {
+      if (!isBypassEmail(normalizedEmail) && !isAdminPortal && !normalizedEmail.endsWith('@parkwayschools.net')) {
         throw new Error('You must use a valid @parkwayschools.net email address.');
       }
 
@@ -88,25 +97,24 @@ const Auth = () => {
           await finishLogin(data.user, portalRole);
         }
       } else {
-        if (canBypassAuth(normalizedEmail, portalRole) && password.length >= 6) {
-          try {
-            const data = await signInWithEmail(normalizedEmail, password);
-            if (data.user) {
-              await finishLogin(data.user, portalRole);
-            }
-          } catch {
-            completeLogin(createBypassUser(normalizedEmail, portalRole));
-          }
-        } else {
-          const data = await signInWithEmail(normalizedEmail, password);
+        try {
+          const data = await signInWithEmail(normalizedEmail, password, {
+            timeoutMs: bypassUser ? 3500 : 8000,
+          });
           if (data.user) {
             await finishLogin(data.user, portalRole);
+          }
+        } catch (signInError) {
+          if (bypassUser) {
+            completeLogin(bypassUser);
+          } else {
+            throw signInError;
           }
         }
       }
     } catch (err) {
-      if (canBypassAuth(normalizedEmail, portalRole) && password.length >= 6) {
-        completeLogin(createBypassUser(normalizedEmail, portalRole));
+      if (bypassUser) {
+        completeLogin(bypassUser);
         return;
       }
 

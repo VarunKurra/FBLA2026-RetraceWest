@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
+import { getLocalSessionUser } from '../services/authService';
 import { MapContainer, TileLayer, CircleMarker, Circle, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -179,7 +180,9 @@ const Admin = () => {
     loadAdminData();
   }, [state.user]);
 
-  if (!state.user || state.user.role !== 'admin') {
+  const activeUser = state.user || getLocalSessionUser();
+
+  if (!activeUser || activeUser.role !== 'admin') {
     return (
       <div className="auth-barrier">
         <div className="auth-barrier-card">

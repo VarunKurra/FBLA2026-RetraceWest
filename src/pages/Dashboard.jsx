@@ -2,16 +2,24 @@ import React, { useEffect, useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { Shield, Medal, CheckCircle, Package, ArrowRight, Clock, Clock4, Compass, Star } from 'lucide-react';
 import { useApp, PARKWAY_WEST } from '../context/AppContext';
-
-
+import { getLocalSessionUser } from '../services/authService';
 
 const Dashboard = () => {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const [claims, setClaims] = useState([]);
   const [recentFound, setRecentFound] = useState([]);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    if (!state.user) return;
+    const localUser = getLocalSessionUser();
+    if (localUser && !state.user) {
+      dispatch({ type: 'LOGIN', payload: localUser });
+    }
+    setAuthChecked(true);
+  }, [dispatch, state.user]);
+
+  useEffect(() => {
+    if (!state.user || state.user.id?.startsWith('local-')) return;
     const fetchData = async () => {
       try {
         const { supabase } = await import('../supabaseClient');
@@ -36,9 +44,12 @@ const Dashboard = () => {
     fetchData();
   }, [state.user]);
 
-  if (!state.user) return <Navigate to="/auth" />;
+  if (!authChecked) return null;
 
-  const { firstName, role, points = 0 } = state.user;
+  const activeUser = state.user || getLocalSessionUser();
+  if (!activeUser) return <Navigate to="/auth" replace />;
+
+  const { firstName, role, points = 0 } = activeUser;
 
   // Derive points tier
   let tier = 'Longhorn';
