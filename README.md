@@ -153,6 +153,10 @@ Fielding, Roy T. Architectural Styles and the Design of Network-based Software A
 
 Deterding, Sebastian, et al. “From Game Design Elements to Gamefulness: Defining ‘Gamification.’” Proceedings of the 15th International Academic MindTrek Conference, 2011.
 
+
 “Lost and Found Systems: Improving Item Recovery Through Technology.” International Journal of Information Systems, vol. 45, no. 3, 2022.
 
 “Human-Computer Interaction (HCI).” Interaction Design Foundation, https://www.interaction-design.org/literature/topics/human-computer-interaction.
+
+# Development Process
+![Development Process Screenshot](./public/Development_Process.png)
