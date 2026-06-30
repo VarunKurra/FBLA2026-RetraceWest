@@ -159,4 +159,6 @@ Deterding, Sebastian, et al. “From Game Design Elements to Gamefulness: Defini
 “Human-Computer Interaction (HCI).” Interaction Design Foundation, https://www.interaction-design.org/literature/topics/human-computer-interaction.
 
 # Development Process
-![Development Process Screenshot](./public/Development_Process.png)
+<p align="center">
+  <img src="./public/Development_Process.png" alt="Development Process Screenshot" width="800">
+</p>
